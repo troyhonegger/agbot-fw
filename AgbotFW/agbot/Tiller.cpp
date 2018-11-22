@@ -1,4 +1,13 @@
-#include "tiller.h"
+/*
+ * Tiller.cpp
+ * This module contains a set of functions to be used to interact with the tillers on the machine. It declares a global array
+ * containing all three tillers on the machine. It also defines diagnostic operations (to raise, lower, and stop tillers manually),
+ * as well as processing operations (to schedule tiller operations as weeds are encountered).
+ * Created: 11/21/2018 8:13:00 PM
+ *  Author: troy.honegger
+ */
+
+#include "Tiller.h"
 
 #include <Arduino.h>
 

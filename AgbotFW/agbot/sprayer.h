@@ -1,5 +1,15 @@
-#ifndef SPRAYER_H
-#define SPRAYER_H
+/*
+ * Sprayer.h
+ * This header defines a set of data and functions to be used to interact with the sprayers on the machine. It defines the sprayer
+ * structure, which encapsulates the state of a single sprayer, as well as a global array containing all eight sprayers on the machine.
+ * It also defines diagnostic operations (to turn sprayers on or off manually) as well as processing operations (to schedule spraying
+ * as weeds are encountered).
+ * Created: 11/21/2018 8:00:00 PM
+ *  Author: troy.honegger
+ */ 
+
+#ifndef SPRAYER_H_
+#define SPRAYER_H_
 
 #include <Arduino.h>
 
@@ -23,6 +33,16 @@ struct sprayer {
 	bool status; // on or off - can be read externally, but should only be set by the sprayer library functions
 };
 
+// Physical significance of sprayer numbering: Sprayers 0 through 3 represent the left row, and sprayer 4 through 7 represent the right row.
+// Within a row, sprayers are numbered front to back - the front left sprayer is number 0, and the back right sprayer is number 7. This is
+// summarized in the following diagram:
+//     Kubota
+//      /|\      <--trailer hitch
+//    ///|\\\
+//  X #0 X #4 X  <--X's represent spaces in between rows (where the tillers are)
+//  X #1 X #5 X
+//  X #2 X #6 X
+//  X #3 X #7 X
 extern struct sprayer sprayerList[NUM_SPRAYERS];
 
 
@@ -47,4 +67,4 @@ void updateSprayers(void);
 // sprayers is a bitfield here, NOT an array index. This should only be called when in diag mode.
 void diagSetSprayer(uint8_t sprayers, bool status);
 
-#endif //SPRAYER_H
+#endif /* SPRAYER_H_ */

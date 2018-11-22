@@ -1,12 +1,12 @@
 /*
- * timehelper.cpp
- * This file implements the timehelper header file with a set of helper functions for working with time. Currently, the only helper is the timeElapsed function
+ * TimeHelper.cpp
+ * This module implements the TiemHelper header with a set of helper functions for working with time. Currently, the only helper is the timeElapsed function
  * which determines if a given time has already elapsed or not. However, it may be expanded to include more functions in the future
  * Created: 11/21/2018 7:03:00 PM
  *  Author: troy.honegger
  */ 
 
- #include "timehelper.h"
+ #include "TimeHelper.h"
 
  #include <Arduino.h>
 

@@ -1,7 +1,15 @@
+/*
+ * Sprayer.cpp
+ * This module contains a set of functions to be used to interact with the sprayers on the machine. It declares a global array
+ * containing all eight sprayers on the machine. It also defines diagnostic operations (to turn sprayers on or off manually)
+ * as well as processing operations (to schedule spraying as weeds are encountered).
+ * Created: 11/21/2018 8:00:00 PM
+ *  Author: troy.honegger
+ */
 
-#include "sprayer.h"
+#include "Sprayer.h"
 
-#include "timehelper.h"
+#include "TimeHelper.h"
 
 #define SPRAYER_DELAY (1000)
 #define SPRAYER_PRECISION (250)
