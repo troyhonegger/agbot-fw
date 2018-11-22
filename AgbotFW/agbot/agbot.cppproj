@@ -204,6 +204,9 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Config.cpp">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="Config.h">
       <SubType>compile</SubType>
     </Compile>

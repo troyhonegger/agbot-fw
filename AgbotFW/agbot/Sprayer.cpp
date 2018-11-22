@@ -67,9 +67,9 @@ void scheduleSpray(uint8_t sprayers) {
 	for (uint8_t i = 0; i < NUM_SPRAYERS; i++) {
 		if (sprayers & bitmask) {
 			if (sprayerList[i].status != SPRAYER_PROCESS_SCHEDULED) {
-				sprayerList[i].onTime = millis() + SPRAYER_DELAY;
+				sprayerList[i].onTime = millis() + getTotalDelay() - getPrecision() / 2;
 			}
-			sprayerList[i].offTime = millis() + SPRAYER_DELAY + SPRAYER_PRECISION;
+			sprayerList[i].offTime = millis() + getTotalDelay() + getPrecision() / 2;
 			sprayerList[i].status = SPRAYER_PROCESS_SCHEDULED;
 		}
 		bitmask <<= 1;

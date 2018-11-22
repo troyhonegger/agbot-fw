@@ -1,16 +1,17 @@
 /*
  * Config.h
- * There are a handful of settings that need to be stored in EEPROM so that they can be configured at runtime and
- * persisted across application instances. This header defines functions for reading and writing those values. In general,
- * the "getter" functions can be called anytime - it is expected that the implementation will buffer the settings,
- * so there is no data read overhead. The "setter" functions, however, do have overhead and should not be called except
- * upon request from the client computer.
+ * There are a handful of settings that need to be stored in EEPROM so that they can be configured at runtime and persisted
+ * across application instances. This header defines functions for reading and writing those values. The "getter" functions
+ * can be called anytime - it is expected that the implementation will buffer the settings, so there is no data read overhead.
+ * The "setter" functions, however, do have overhead and, in general, should not be called except upon request over the serial port.
  * Created: 11/21/2018 8:09:00 PM
  *  Author: troy.honegger
  */
 
 #ifndef CONFIG_H_
 #define CONFIG_H_
+
+#include <Arduino.h>
 
 // Initializes the configuration settings by loading them from EEPROM into RAM. This should be called on startup -
 // if it isn't, the settings may be initialized to random values.
