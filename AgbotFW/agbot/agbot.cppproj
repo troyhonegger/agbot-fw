@@ -222,6 +222,12 @@
     <Compile Include="tiller.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="timehelper.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="timehelper.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Content Include="readme.html">
     </Content>
   </ItemGroup>
