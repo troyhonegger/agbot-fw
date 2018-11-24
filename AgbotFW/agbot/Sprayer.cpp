@@ -17,6 +17,9 @@
 // sprayer pins are numbered 9, 10, 11, 12, 13, 14, 15, 16
 #define MIN_SPRAYER_PIN (9)
 
+// Maps sprayerId to a pin number. Note that sprayerId is an array index, NOT a bitfield.
+static inline uint8_t sprayerPinNumber(uint8_t sprayerId) { return MIN_SPRAYER_PIN + sprayerId; }
+
 // sprayers are active low
 #define SPRAYER_OFF_VOLTAGE (HIGH)
 #define SPRAYER_ON_VOLTAGE (LOW)
@@ -27,8 +30,8 @@ struct sprayer sprayerList[NUM_SPRAYERS];
 // Note that sprayersEnter???Mode() still needs to be called before diag or process functions are called.
 void initSprayers(void) {
 	for (uint8_t i = 0; i < NUM_SPRAYERS; i++) {
-		pinMode(MIN_SPRAYER_PIN + i, OUTPUT);
-		digitalWrite(MIN_SPRAYER_PIN + i, SPRAYER_OFF_VOLTAGE);
+		pinMode(sprayerPinNumber(i), OUTPUT);
+		digitalWrite(sprayerPinNumber(i), SPRAYER_OFF_VOLTAGE);
 		sprayerList[i].offTime = sprayerList[i].onTime = millis();
 		sprayerList[i].state = SPRAYER_STATE_UNSET;
 		sprayerList[i].status = SPRAYER_OFF;
@@ -36,11 +39,11 @@ void initSprayers(void) {
 }
 
 // Shuts off all sprayers and sets them to process mode. Note that the sprayers will be turned off (and all scheduled sprayer
-// operations will be cancelled) even if the sprayers were already in process mode. If the machine is already in process mode,
+// operations will be canceled) even if the sprayers were already in process mode. If the machine is already in process mode,
 // this generally should not be called (though it might make sense under exceptional circumstances).
 void sprayersEnterProcessMode(void) {
 	for (uint8_t i = 0; i < NUM_SPRAYERS; i++) {
-		digitalWrite(MIN_SPRAYER_PIN + i, SPRAYER_OFF_VOLTAGE);
+		digitalWrite(sprayerPinNumber(i), SPRAYER_OFF_VOLTAGE);
 		sprayerList[i].offTime = sprayerList[i].onTime = millis();
 		sprayerList[i].state = SPRAYER_PROCESS_OFF;
 		sprayerList[i].status = SPRAYER_OFF;
@@ -52,7 +55,7 @@ void sprayersEnterProcessMode(void) {
 // exceptional circumstances).
 void sprayersEnterDiagMode(void) {
 	for (uint8_t i = 0; i < NUM_SPRAYERS; i++) {
-		digitalWrite(MIN_SPRAYER_PIN + i, SPRAYER_OFF_VOLTAGE);
+		digitalWrite(sprayerPinNumber(i), SPRAYER_OFF_VOLTAGE);
 		sprayerList[i].offTime = sprayerList[i].onTime = millis();
 		sprayerList[i].state = SPRAYER_DIAG_OFF;
 		sprayerList[i].status = SPRAYER_OFF;
@@ -78,19 +81,18 @@ void scheduleSpray(uint8_t sprayers) {
 
 // Performs any scheduled set sprayer operations. This should be called every loop iteration. In diag mode, it will have no effect.
 void updateSprayers(void) {
-	unsigned long time = millis();
 	for (uint8_t i = 0; i < 8; i++) {
 		switch (sprayerList[i].state) {
 			case SPRAYER_PROCESS_SCHEDULED:
 				if (timeElapsed(sprayerList[i].onTime)) {
-					digitalWrite(MIN_SPRAYER_PIN + i, SPRAYER_ON_VOLTAGE);
+					digitalWrite(sprayerPinNumber(i), SPRAYER_ON_VOLTAGE);
 					sprayerList[i].state = SPRAYER_PROCESS_ON;
 					sprayerList[i].status = SPRAYER_ON;
 				}
 			break;
 			case SPRAYER_PROCESS_ON:
 				if (timeElapsed(sprayerList[i].offTime)) {
-					digitalWrite(MIN_SPRAYER_PIN + i, SPRAYER_OFF_VOLTAGE);
+					digitalWrite(sprayerPinNumber(i), SPRAYER_OFF_VOLTAGE);
 					sprayerList[i].state = SPRAYER_PROCESS_OFF;
 					sprayerList[i].status = SPRAYER_OFF;
 				}
@@ -108,13 +110,13 @@ void diagSetSprayer(uint8_t sprayers, bool status) {
 	for (uint8_t i = 0; i < NUM_SPRAYERS; i++) {
 		if (sprayers & bitmask) {
 			if (status == SPRAYER_ON) {
-				digitalWrite(MIN_SPRAYER_PIN + i, SPRAYER_ON_VOLTAGE);
+				digitalWrite(sprayerPinNumber(i), SPRAYER_ON_VOLTAGE);
 				sprayerList[i].offTime = sprayerList[i].onTime = millis();
 				sprayerList[i].state = SPRAYER_DIAG_ON;
 				sprayerList[i].status = SPRAYER_ON;
 			}
 			else {
-				digitalWrite(MIN_SPRAYER_PIN + i, SPRAYER_OFF_VOLTAGE);
+				digitalWrite(sprayerPinNumber(i), SPRAYER_OFF_VOLTAGE);
 				sprayerList[i].offTime = sprayerList[i].onTime = millis();
 				sprayerList[i].state = SPRAYER_DIAG_OFF;
 				sprayerList[i].status = SPRAYER_OFF;
