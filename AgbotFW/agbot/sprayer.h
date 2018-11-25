@@ -13,6 +13,7 @@
 
 #include <Arduino.h>
 
+// sprayer states
 #define SPRAYER_PROCESS_OFF (0)
 #define SPRAYER_PROCESS_ON (1)
 #define SPRAYER_PROCESS_SCHEDULED (2)
@@ -27,8 +28,8 @@
 
 
 struct sprayer {
-	uint32_t offTime; // the sprayer must be on until this time has elapsed
-	uint32_t onTime; // the sprayer must be on once this time has elapsed
+	unsigned long offTime; // the sprayer must be on until this time has elapsed
+	unsigned long onTime; // the sprayer must be on once this time has elapsed
 	uint8_t state; // state (on, off, scheduled, or diag) - should not be accessed externally; use status instead
 	bool status; // on or off - can be read externally, but should only be set by the sprayer library functions
 };
