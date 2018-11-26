@@ -7,6 +7,9 @@
  *  Author: troy.honegger
  */
 
+// comment this out if tillers do not have analog height sensors to resort to a software-based timing approach.
+#define TILLER_HEIGHT_SENSORS
+
 #include "Tiller.h"
 
 #include <Arduino.h>
@@ -27,6 +30,14 @@ static inline int tillerLowerPin(uint8_t tillerId) { return MIN_TILLER_PIN + til
 
 #define TILLER_PIN_ACTIVE_VOLTAGE (HIGH)
 #define TILLER_PIN_INACTIVE_VOLTAGE (LOW)
+
+#ifdef TILLER_HEIGHT_SENSORS
+
+// TODO: I forget if this should be analog pin 0 or analog pin 3 so as to not conflict with the sprayer pins
+#define MIN_TILLER_HEIGHT_SENSOR_PIN (0)
+static inline uint8_t tillerHeightSensorPin(uint8_t tillerId) { return MIN_TILLER_HEIGHT_SENSOR_PIN + tillerId; }
+
+#endif // TILLER_HEIGHT_SENSORS
 
 // This function ONLY performs I/O. It does NOT check to make sure if stopping a tiller is consistent with that tiller's state,
 // and it does NOT update a tiller's state after the operation - it is meant to be used purely as a helper function.
@@ -63,7 +74,13 @@ void initTillers(void) {
 	for (uint8_t i = 0; i < NUM_TILLERS; i++) {
 		pinMode(tillerRaisePin(i), OUTPUT);
 		pinMode(tillerLowerPin(i), OUTPUT);
+		
+		#ifdef TILLER_HEIGHT_SENSORS
+		pinMode(tillerHeightSensorPin(i), INPUT);
+		#endif
+
 		stopTiller(i);
+		
 		tillerList[i].lowerTime = tillerList[i].raiseTime = millis();
 		tillerList[i].state = TILLER_STATE_UNSET;
 		tillerList[i].dh = TILLER_DH_STOPPED;
@@ -112,10 +129,6 @@ void scheduleTillerLower(uint8_t tillers) {
 	}
 }
 
-// TODO: I forget if this should be analog pin 0 or analog pin 3 so as to not conflict with the sprayer pins
-#define MIN_TILLER_HEIGHT_SENSOR_PIN (0)
-static inline uint8_t tillerHeightSensorPin(uint8_t tillerId) { return MIN_TILLER_HEIGHT_SENSOR_PIN + tillerId; }
-
 // Updates the actualHeight property of the specified tiller. This should only be called from inside
 // updateTillers(). Note that tillerId is an array index, NOT a bitfield, so this function can only update
 // one tiller at a time. This may be implemented in different ways depending on the hardware. If there are
@@ -123,8 +136,11 @@ static inline uint8_t tillerHeightSensorPin(uint8_t tillerId) { return MIN_TILLE
 // in this function. Otherwise, this function may use a simple clock and estimate the actual height from
 // the previous value.
 static inline void updateTillerActualHeight(uint8_t tillerId) {
-	// TODO: implementation may vary, depending on whether there are height sensors at a hardware level.
+	#ifdef TILLER_HEIGHT_SENSORS
 	tillerList[tillerId].actualHeight = map(analogRead(tillerHeightSensorPin(tillerId)), 0, 1023, 0, MAX_TILLER_HEIGHT);
+	#else
+	//TODO: implement timer-based height estimation
+	#endif
 }
 
 // Updates the state property of the specified tiller by performing any necessary scheduled state changes.
