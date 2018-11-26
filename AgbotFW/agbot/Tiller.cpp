@@ -129,19 +129,26 @@ void scheduleTillerLower(uint8_t tillers) {
 	}
 }
 
-// Updates the actualHeight property of the specified tiller. This should only be called from inside
-// updateTillers(). Note that tillerId is an array index, NOT a bitfield, so this function can only update
-// one tiller at a time. This may be implemented in different ways depending on the hardware. If there are
-// potentiometers that can be used to read the tiller height, they may be read from via the analog inputs
-// in this function. Otherwise, this function may use a simple clock and estimate the actual height from
-// the previous value.
+#ifdef TILLER_HEIGHT_SENSORS
+
+// Updates the actualHeight property of the specified tiller by reading the height sensor associated with the tiller.
+// This should only be called from inside updateTillers(). Note that tillerId is an array index, NOT a bitfield, so
+// this function can only update one tiller at a time. This function is only defined if the multivator is equipped
+// with height sensors for the tillers
 static inline void updateTillerActualHeight(uint8_t tillerId) {
-	#ifdef TILLER_HEIGHT_SENSORS
 	tillerList[tillerId].actualHeight = map(analogRead(tillerHeightSensorPin(tillerId)), 0, 1023, 0, MAX_TILLER_HEIGHT);
-	#else
-	//TODO: implement timer-based height estimation
-	#endif
 }
+
+#else
+
+// Estimates the actual height of all tillers by multiplying the time difference since the last update by the tiller
+// raise/lower speed. This should only be called from inside updateTilers() This is a somewhat crude method that may
+// cause drift over time, so it is only defined if the multivator is not equipped with height sensors for the tillers.
+static inline void estimateTillerHeightsFromTimer(void) {
+	// TODO: implement
+}
+
+#endif // TILLER_HEIGHT_SENSORS
 
 // Updates the state property of the specified tiller by performing any necessary scheduled state changes.
 // Note that tillerId is an array index, NOT a bitfield, so this function can only update one tiller at a
@@ -212,8 +219,17 @@ static inline void updateTillerDH(uint8_t tillerId) {
 // be performed by this function.
 void updateTillers(void) {
 	if (estopEngaged) return;
+
+	#ifndef TILLER_HEIGHT_SENSORS
+	estimateTillerHeightsFromTimer();
+	#endif
+	
 	for (int i = 0; i < NUM_TILLERS; i++) {
+		
+		#ifdef TILLER_HEIGHT_SENSORS
 		updateTillerActualHeight(i);
+		#endif
+		
 		updateTillerState(i);
 		updateTillerDH(i);
 	}
