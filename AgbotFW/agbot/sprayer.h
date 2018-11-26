@@ -68,4 +68,7 @@ void updateSprayers(void);
 // sprayers is a bitfield here, NOT an array index. This should only be called when in diag mode.
 void diagSetSprayer(uint8_t sprayers, bool status);
 
+// Manually shuts off each sprayer - designed to be called only from estopMachine()
+void estopSprayers(void);
+
 #endif /* SPRAYER_H_ */

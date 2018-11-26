@@ -26,7 +26,7 @@ void setPrecision(unsigned long a_precision) {
 }
 
 // This setting represents the total length of time between when the Arduino is notified of the weed and when the weed is eliminated.
-#define TOTAL_DELAY_EEPROM_LOCATION (PRECISION_EEPROM_LOCATION + sizeof(precision));
+#define TOTAL_DELAY_EEPROM_LOCATION (PRECISION_EEPROM_LOCATION + sizeof(precision))
 static unsigned long totalDelay;
 unsigned long getTotalDelay(void) { return totalDelay; }
 void setTotalDelay(unsigned long a_totalDelay) {
@@ -35,7 +35,7 @@ void setTotalDelay(unsigned long a_totalDelay) {
 }
 
 // This setting represents the amount of time, in milliseconds, the tiller takes to raise.
-#define TILLER_RAISE_TIME_EEPROM_LOCATION (TOTAL_DELAY_EEPROM_LOCATION + sizeof(totalDelay));
+#define TILLER_RAISE_TIME_EEPROM_LOCATION (TOTAL_DELAY_EEPROM_LOCATION + sizeof(totalDelay))
 static unsigned long tillerRaiseTime;
 unsigned long getTillerRaiseTime(void) { return tillerRaiseTime; }
 void setTillerRaiseTime(unsigned long a_raiseTime) {
@@ -44,7 +44,7 @@ void setTillerRaiseTime(unsigned long a_raiseTime) {
 }
 
 // This setting represents the amount of time, in milliseconds, the tiller takes to lower.
-#define TILLER_LOWER_TIME_EEPROM_LOCATION (TILLER_RAISE_TIME_EEPROM_LOCATION + sizeof(tillerRaiseTime));
+#define TILLER_LOWER_TIME_EEPROM_LOCATION (TILLER_RAISE_TIME_EEPROM_LOCATION + sizeof(tillerRaiseTime))
 static unsigned long tillerLowerTime;
 unsigned long getTillerLowerTime(void) { return tillerLowerTime; }
 void setTillerLowerTime(unsigned long a_lowerTime) {
@@ -55,7 +55,7 @@ void setTillerLowerTime(unsigned long a_lowerTime) {
 // This setting represents how closely the tillers should be kept to their target value. A value of 10 allows a +/-10% variation,
 // a value of 5 allows a +/-5% variation, etc. This should be a number between 0 and 100, though the implementation does nothing
 // to enforce this - the enforcement is up to the consumer.
-#define TILLER_ACCURACY_EEPROM_LOCATION (TILLER_LOWER_TIME_EEPROM_LOCATION + sizeof(tillerLowerTime));
+#define TILLER_ACCURACY_EEPROM_LOCATION (TILLER_LOWER_TIME_EEPROM_LOCATION + sizeof(tillerLowerTime))
 static uint8_t tillerAccuracy;
 uint8_t getTillerAccuracy(void) { return tillerAccuracy; }
 void setTillerAccuracy(uint8_t a_tillerAccuracy) {

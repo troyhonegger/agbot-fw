@@ -9,6 +9,8 @@
 
 #include "Sprayer.h"
 
+#include "Config.h"
+#include "Estop.h"
 #include "TimeHelper.h"
 
 #define SPRAYER_DELAY (1000)
@@ -42,6 +44,7 @@ void initSprayers(void) {
 // operations will be canceled) even if the sprayers were already in process mode. If the machine is already in process mode,
 // this generally should not be called (though it might make sense under exceptional circumstances).
 void sprayersEnterProcessMode(void) {
+	if (estopEngaged) return;
 	for (uint8_t i = 0; i < NUM_SPRAYERS; i++) {
 		digitalWrite(sprayerPinNumber(i), SPRAYER_OFF_VOLTAGE);
 		sprayerList[i].offTime = sprayerList[i].onTime = millis();
@@ -54,6 +57,7 @@ void sprayersEnterProcessMode(void) {
 // in diag mode. If the machine is already in diag mode, this generally should not be called (though it might make sense under
 // exceptional circumstances).
 void sprayersEnterDiagMode(void) {
+	if (estopEngaged) return;
 	for (uint8_t i = 0; i < NUM_SPRAYERS; i++) {
 		digitalWrite(sprayerPinNumber(i), SPRAYER_OFF_VOLTAGE);
 		sprayerList[i].offTime = sprayerList[i].onTime = millis();
@@ -66,6 +70,7 @@ void sprayersEnterDiagMode(void) {
 // operation performs no I/O, as it is only scheduling an operation to be performed later. Note that sprayers is referring
 // to a bitfield, not an array index, so multiple sprayers can be scheduled at once.
 void scheduleSpray(uint8_t sprayers) {
+	if (estopEngaged) return;
 	uint8_t bitmask = 1;
 	for (uint8_t i = 0; i < NUM_SPRAYERS; i++) {
 		if (sprayers & bitmask) {
@@ -81,6 +86,7 @@ void scheduleSpray(uint8_t sprayers) {
 
 // Performs any scheduled set sprayer operations. This should be called every loop iteration. In diag mode, it will have no effect.
 void updateSprayers(void) {
+	if (estopEngaged) return;
 	for (uint8_t i = 0; i < 8; i++) {
 		switch (sprayerList[i].state) {
 			case SPRAYER_PROCESS_SCHEDULED:
@@ -106,6 +112,7 @@ void updateSprayers(void) {
 // Sets the specified sprayers to the specified mode. The machine should be in diag mode when this is called. Note that sprayers
 // is referring to a bitfield, not an array index, so multiple sprayers can be set at once.
 void diagSetSprayer(uint8_t sprayers, bool status) {
+	if (estopEngaged) return;
 	uint8_t bitmask = 1;
 	for (uint8_t i = 0; i < NUM_SPRAYERS; i++) {
 		if (sprayers & bitmask) {
@@ -123,5 +130,17 @@ void diagSetSprayer(uint8_t sprayers, bool status) {
 			}
 		}
 		bitmask <<= 1;
+	}
+}
+
+// Manually shuts off each sprayer - designed to be called only from estopMachine()
+void estopSprayers(void) {
+	for (uint8_t i = 0; i < NUM_SPRAYERS; i++) {
+		// first, we manually shut off the sprayer
+		digitalWrite(sprayerPinNumber(i), SPRAYER_OFF_VOLTAGE);
+		// though not technically necessary, we modify the sprayer's state to a value that minimizes the chance
+		// that any function will try to turn it on.
+		sprayerList[i].state = SPRAYER_STATE_UNSET;
+		sprayerList[i].status = SPRAYER_OFF;
 	}
 }

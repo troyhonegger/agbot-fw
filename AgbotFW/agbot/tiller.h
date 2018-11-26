@@ -51,7 +51,8 @@ extern bool estopEngaged;
 //////////////////////////////////////////////////////////////////////////
 
 // Initializes tillerList, configures the GPIO pins, and performs all other necessary initialization work for the tillers.
-// Note that tillersEnter???Mode() still needs to be called before diag or process functions are called.
+// This should only be called from inside the setup() function. Note that tillersEnter???Mode() still needs to be called
+// before diag or process functions can be used.
 void initTillers(void);
 
 // Raises all tillers and switches them to process mode. This can be used to recover from an e-stop and, as such, should ONLY be called
@@ -95,10 +96,7 @@ void diagSetTiller(uint8_t tillers, uint8_t target);
 // E-Stop functions
 //////////////////////////////////////////////////////////////////////////
 
-// Stops every tiller raise operation and locks each tiller so updateTillers() knows not to do anything.
-// Note that EVERY diagnostic and processing command should ALWAYS check if an e-stop is engaged and, if
-// so, return without performing any operation. Thus, the ONLY way to recover from an e-stop is by
-// calling tillersEnter???Mode()
+// Manually stops each tiller - designed to be called only from estopMachine()
 void estopTillers(void);
 
 #endif /* TILLER_H_ */

@@ -12,10 +12,10 @@
 #include <Arduino.h>
 
 #include "Config.h"
+#include "Estop.h"
 #include "TimeHelper.h"
 
 struct tiller tillerList[NUM_TILLERS];
-bool estopEngaged;
 
 //////////////////////////////////////////////////////////////////////////
 // I/O helper functions
@@ -25,8 +25,8 @@ bool estopEngaged;
 static inline int tillerRaisePin(uint8_t tillerId) { return MIN_TILLER_PIN + tillerId * 2; }
 static inline int tillerLowerPin(uint8_t tillerId) { return MIN_TILLER_PIN + tillerId * 2 + 1; }
 
-#define TILLER_PIN_ACTIVE_VOLTAGE (HIGH);
-#define TILLER_PIN_INACTIVE_VOLTAGE (LOW);
+#define TILLER_PIN_ACTIVE_VOLTAGE (HIGH)
+#define TILLER_PIN_INACTIVE_VOLTAGE (LOW)
 
 // This function ONLY performs I/O. It does NOT check to make sure if stopping a tiller is consistent with that tiller's state,
 // and it does NOT update a tiller's state after the operation - it is meant to be used purely as a helper function.
@@ -57,9 +57,9 @@ static inline void lowerTiller(uint8_t tillerId) {
 //////////////////////////////////////////////////////////////////////////
 
 // Initializes tillerList, configures the GPIO pins, and performs all other necessary initialization work for the tillers.
-// Note that tillersEnter???Mode() still needs to be called before diag or process functions are called.
+// This should only be called from inside the setup() function. Note that tillersEnter???Mode() still needs to be called
+// before diag or process functions can be used.
 void initTillers(void) {
-	estopEngaged = false;
 	for (uint8_t i = 0; i < NUM_TILLERS; i++) {
 		pinMode(tillerRaisePin(i), OUTPUT);
 		pinMode(tillerLowerPin(i), OUTPUT);
@@ -72,10 +72,9 @@ void initTillers(void) {
 	}
 }
 
-// Raises all tillers and switches them to process mode. This can be used to recover from an e-stop and, as such, should ONLY be called
-// upon request over the serial port.
+// Raises all tillers and switches them to process mode
 void tillersEnterProcessMode(void) {
-	estopEngaged = false;
+	if (estopEngaged) return;
 	for (uint8_t i = 0; i < NUM_TILLERS; i++) {
 		tillerList[i].lowerTime = tillerList[i].raiseTime = millis();
 		tillerList[i].state = TILLER_PROCESS_RAISING;
@@ -83,10 +82,9 @@ void tillersEnterProcessMode(void) {
 	}
 }
 
-// Stops all tillers and switches them to diag mode. This can be used to recover from an e-stop and, as such, should ONLY be called
-// upon request over the serial port.
+// Stops all tillers and switches them to diag mode
 void tillersEnterDiagMode(void) {
-	estopEngaged = false;
+	if (estopEngaged) return;
 	for (uint8_t i = 0; i < NUM_TILLERS; i++) {
 		tillerList[i].lowerTime = tillerList[i].raiseTime = millis();
 		tillerList[i].state = TILLER_DIAG_STOPPED;
@@ -266,16 +264,13 @@ void diagSetTiller(uint8_t tillers, uint8_t target) {
 // E-Stop functions
 //////////////////////////////////////////////////////////////////////////
 
-// Stops every tiller raise/lower operation and sets the estopEngaged flag so updateTillers() knows not to do anything.
+// Manually stops each tiller - designed to be called only from estopMachine()
 void estopTillers(void) {
-	estopEngaged = true;
-	// first, we 
 	for (int i = 0; i < NUM_TILLERS; i++) {
+		// first, we manually stop the tiller
 		stopTiller(i);
-	}
-	// though not strictly necessary, we modify every tiller's state to values that minimize the chance
-	// that any function will try to turn one on.
-	for (int i = 0; i < NUM_TILLERS; i++) {
+		// though not technically necessary, we modify the tiller's state to values that minimize the chance
+		// that any function will try to turn it on.
 		tillerList[i].state = TILLER_STATE_UNSET;
 		tillerList[i].targetHeight = TILLER_STOP;
 	}

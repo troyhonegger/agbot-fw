@@ -210,6 +210,12 @@
     <Compile Include="Config.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="Estop.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="Estop.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="Sketch.cpp">
       <SubType>compile</SubType>
     </Compile>
