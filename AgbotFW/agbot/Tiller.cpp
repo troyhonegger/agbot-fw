@@ -28,13 +28,13 @@ struct tiller tillerList[NUM_TILLERS];
 static inline int tillerRaisePin(uint8_t tillerId) { return MIN_TILLER_PIN + tillerId * 2; }
 static inline int tillerLowerPin(uint8_t tillerId) { return MIN_TILLER_PIN + tillerId * 2 + 1; }
 
-#define TILLER_PIN_ACTIVE_VOLTAGE (HIGH)
-#define TILLER_PIN_INACTIVE_VOLTAGE (LOW)
+#define TILLER_PIN_ACTIVE_VOLTAGE (LOW)
+#define TILLER_PIN_INACTIVE_VOLTAGE (HIGH)
 
 #ifdef TILLER_HEIGHT_SENSORS
 
 // TODO: I forget if this should be analog pin 0 or analog pin 3 so as to not conflict with the sprayer pins
-#define MIN_TILLER_HEIGHT_SENSOR_PIN (0)
+#define MIN_TILLER_HEIGHT_SENSOR_PIN (PIN_A3)
 static inline uint8_t tillerHeightSensorPin(uint8_t tillerId) { return MIN_TILLER_HEIGHT_SENSOR_PIN + tillerId; }
 
 #endif // TILLER_HEIGHT_SENSORS
@@ -172,19 +172,22 @@ static inline void updateTillerDH(uint8_t tillerId) {
 	if (estopEngaged) return;
 	
 	// compute newDh
-	uint8_t newDh = TILLER_DH_STOPPED;
+	int8_t newDh = TILLER_DH_STOPPED;
 	switch (tillerList[tillerId].state){
 		case TILLER_STATE_UNSET: break;
 		case TILLER_DIAG_STOPPED: break;
 		case TILLER_DIAG_RAISING:
 			newDh = TILLER_DH_UP;
+			break;
 		case TILLER_DIAG_LOWERING:
 			newDh = TILLER_DH_DOWN;
+			break;
 		default:
 			if (tillerList[tillerId].targetHeight == TILLER_STOP) {
 				newDh = TILLER_DH_STOPPED;
 			}
 			else {
+				
 				int8_t diff = tillerList[tillerId].targetHeight - tillerList[tillerId].actualHeight;
 				if (abs(diff) <= getTillerAccuracy()) {
 					newDh = TILLER_DH_STOPPED;
@@ -195,7 +198,6 @@ static inline void updateTillerDH(uint8_t tillerId) {
 			}
 			break;
 	}
-
 	// compare newDh to current dh and update if necessary
 	if (newDh != tillerList[tillerId].dh) {
 		tillerList[tillerId].dh = newDh;
@@ -249,6 +251,7 @@ void diagRaiseTiller(uint8_t tillers) {
 			tillerList[i].state = TILLER_DIAG_RAISING;
 			tillerList[i].targetHeight = MAX_TILLER_HEIGHT;
 		}
+		bitmask <<= 1;
 	}
 }
 
@@ -262,6 +265,7 @@ void diagLowerTiller(uint8_t tillers) {
 			tillerList[i].state = TILLER_DIAG_LOWERING;
 			tillerList[i].targetHeight = 0;
 		}
+		bitmask <<= 1;
 	}
 }
 
@@ -275,6 +279,7 @@ void diagStopTiller(uint8_t tillers) {
 			tillerList[i].state = TILLER_DIAG_STOPPED;
 			tillerList[i].targetHeight = TILLER_STOP;
 		}
+		bitmask <<= 1;
 	}
 }
 

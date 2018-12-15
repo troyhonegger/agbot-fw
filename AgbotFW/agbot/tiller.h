@@ -36,7 +36,7 @@ struct tiller {
 	unsigned long lowerTime; // the tiller must be lowered or lowering once this time has elapsed
 	unsigned long raiseTime; // the tiller must be lowered or lowering until this time has elapsed
 	uint8_t state; // state (raising, lowering, scheduled, or diag) - used only by internal functions; should not be accessed externally
-	uint8_t dh; // change in height of the tiller (raising, lowering, or stopped)
+	int8_t dh; // change in height of the tiller (raising, lowering, or stopped)
 	uint8_t targetHeight; // target height of the tiller
 	uint8_t actualHeight; // actual height of the tiller
 };

@@ -74,11 +74,11 @@ void scheduleSpray(uint8_t sprayers) {
 	uint8_t bitmask = 1;
 	for (uint8_t i = 0; i < NUM_SPRAYERS; i++) {
 		if (sprayers & bitmask) {
-			if (sprayerList[i].status != SPRAYER_PROCESS_SCHEDULED) {
+			if (sprayerList[i].state != SPRAYER_PROCESS_SCHEDULED) {
 				sprayerList[i].onTime = millis() + getTotalDelay() - getPrecision() / 2;
 			}
 			sprayerList[i].offTime = millis() + getTotalDelay() + getPrecision() / 2;
-			sprayerList[i].status = SPRAYER_PROCESS_SCHEDULED;
+			sprayerList[i].state = SPRAYER_PROCESS_SCHEDULED;
 		}
 		bitmask <<= 1;
 	}
@@ -95,14 +95,14 @@ void updateSprayers(void) {
 					sprayerList[i].state = SPRAYER_PROCESS_ON;
 					sprayerList[i].status = SPRAYER_ON;
 				}
-			break;
+				break;
 			case SPRAYER_PROCESS_ON:
 				if (timeElapsed(sprayerList[i].offTime)) {
 					digitalWrite(sprayerPinNumber(i), SPRAYER_OFF_VOLTAGE);
 					sprayerList[i].state = SPRAYER_PROCESS_OFF;
 					sprayerList[i].status = SPRAYER_OFF;
 				}
-			break;
+				break;
 			default: break;
 		}
 	}
