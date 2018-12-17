@@ -15,6 +15,32 @@
 
 #include <Arduino.h>
 
+// General paradigm for error handling: Messages not starting with the '^' character, or overflowing
+// the maximum message size, or not ending with a '\n' character will be ignored. See the readSerial()
+// implementation and comments in SerialApi.cpp for details
+
+#define MESSAGE_BUFFER_SIZE (8)
+#define MAX_MESSAGE_SIZE (16)
+
+#define MESSAGE_START ('^')
+#define MESSAGE_END ('\n')
+
+// Returns true if a serial message is available.
+bool serialMessageAvailable(void);
+
+// Updates the serial buffer with data read from the serial port. Note that once the buffer
+// reaches its maximum size, it will wrap around and start overwriting already-received messages.
+void readSerial(void);
+
+// Returns a pointer to the next buffered message, or NULL if no message is available.
+// Note that once this pointer is returned, it the serial processor releases the position
+// to allow it to be overwritten in the future.
+// Note that this message will eventually be overwritten as new messages take its place.
+// To avoid this, call getSerialMessage() and immediately process the message - do not call
+// readSerial() in between.
+char *getSerialMessage(void);
+
+#ifdef OLD_SERIAL_API
 // The maximum length of a message (note that the message buffer is one character larger than this to
 // allow space for a null terminator).
 #define MAX_MESSAGE_SIZE (64)
@@ -30,7 +56,7 @@
 
 // This string is guaranteed to be null-terminated at the end of the last message and at the end of the buffer,
 // but every char after the last message may not necessarily be set to '\0'.
-extern char messageBuffer[MAX_MESSAGE_SIZE + 1];
+extern char messageBuffer2[MAX_MESSAGE_SIZE + 1];
 
 // Initializes the serial port to begin sending and receiving messages.
 void initSerialApi(void);
@@ -47,6 +73,8 @@ uint8_t getMessageState(void);
 // entire buffer. Note that this function clears only a single message, not necessarily the entire
 // buffer, so to clear the entire buffer it may be necessary to call this method more than once.
 uint8_t clearMessageFromBuffer(void);
+#endif
+
 
 template <class number>
 // Attempts to parse str as a number of the specified type. If successful, stores the result in value

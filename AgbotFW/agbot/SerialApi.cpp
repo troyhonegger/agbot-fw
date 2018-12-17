@@ -13,9 +13,95 @@
 
 #include <Arduino.h>
 
+char messageBuffer[MESSAGE_BUFFER_SIZE][MAX_MESSAGE_SIZE + 1] = { 0 };
+
+static uint8_t messageReadIndex = 0;
+static uint8_t messageReadPosn = 0;
+static uint8_t messageProcessIndex = 0;
+// TODO: it'd maybe be nice to build in some better handling for buffer overflows. Maybe set a global flag and add
+// a function to the header to return its value? Then the main loop could poll for errors. Alternatively, an event
+// handler could be registered that would, say, print a message to the serial port every time an overflow occurs
+static bool blockNewMessages = false;
+
+static void clearMessage(uint8_t index) {
+	for (uint8_t i = 0; i < MAX_MESSAGE_SIZE + 1; i++) {
+		messageBuffer[index][i] = '\0';
+	}
+}
+
+// Reads character(s) from the ArduinoCore serial buffer into a message buffer for processing.
+// Overflow flag ON - ignore all messages until it's cleared.
+// Posn >= MAX_MESSAGE_SIZE: clear message buffer, reset posn = 0
+// Posn zero, non-^ character: ignore
+// Posn zero, ^ character: insert and increment
+// Posn nonzero, ^ character: clear buffer, insert ^, and increment
+// Posn nonzero, \n character: insert and go to next message (check for setting blockNewMessages flag)
+// Posn nonzero, other character: insert and increment
+void readSerial(void) {
+	while (Serial.available()) {
+		if (blockNewMessages) break;
+		int i = Serial.read();
+		if (i == -1) break;
+		char c = (char) i;
+		if (messageReadPosn >= MAX_MESSAGE_SIZE) {
+			// message overflowed the buffer; discard the message and process the next character as normal
+			clearMessage(messageReadIndex);
+			messageReadPosn = 0;
+		}
+		if (messageReadPosn == 0) { // start of message - must be MESSAGE_START
+			if (c == MESSAGE_START) {
+				messageBuffer[messageReadIndex][messageReadPosn++] = c;
+			}
+			else {} // ignore all other characters until MESSAGE_START
+		}
+		else {
+			switch (c) {
+				// unexpected MESSAGE_START character, probably due to overflow of the ArduinoCore
+				// buffer. Discard the message and start a new one in its place
+				case MESSAGE_START:
+					clearMessage(messageReadIndex);
+					messageReadPosn = 0;
+					messageBuffer[messageReadIndex][messageReadPosn++] = c;
+					break;
+				// end of message - move on to the next one
+				case MESSAGE_END:
+					messageBuffer[messageReadIndex][messageReadPosn++] = c;
+					messageReadIndex = (messageReadIndex + 1) % MESSAGE_BUFFER_SIZE;
+					if (messageReadIndex == messageProcessIndex) {
+						// overflow flag ON - no room for next message
+						blockNewMessages = true;
+					}
+					messageReadPosn = 0;
+					break;
+				// normal character
+				default:
+					messageBuffer[messageReadIndex][messageReadPosn++] = c;
+					break;
+			}
+		}
+	}
+}
+
+bool serialMessageAvailable(void) {
+	return blockNewMessages || messageReadIndex != messageProcessIndex;
+}
+
+char *getSerialMessage(void) {
+	if (serialMessageAvailable()) {
+		char *returnValue = &messageBuffer[messageProcessIndex][0];
+		messageProcessIndex = (messageProcessIndex + 1) % MESSAGE_BUFFER_SIZE;
+		blockNewMessages = false;
+		return returnValue;
+	}
+	else {
+		return NULL;
+	}
+}
+
+#ifdef OLD_SERIAL_API
 // This string is guaranteed to be null-terminated at the end of the last message and at the end of the buffer,
 // but every char after the last message may not necessarily be set to '\0'.
-char messageBuffer[MAX_MESSAGE_SIZE + 1];
+char messageBuffer2[MAX_MESSAGE_SIZE + 1];
 
 // This flag is used internally by this module to reflect the state of the buffer. It is updated after every
 // read and update operation.
@@ -28,8 +114,8 @@ static uint8_t messageBufferPos;
 // Initializes the serial port to begin sending and receiving messages.
 void initSerialApi(void) {
 	Serial.begin(9600);
-	messageBuffer[0] = '\0';
-	messageBuffer[MAX_MESSAGE_SIZE] = '\0';
+	messageBuffer2[0] = '\0';
+	messageBuffer2[MAX_MESSAGE_SIZE] = '\0';
 	messageBufferPos = 0;
 	messageBufferState = MESSAGE_INCOMPLETE;
 }
@@ -49,8 +135,8 @@ uint8_t updateMessageBuffer(void) {
 		}
 		numRead++;
 		
-		messageBuffer[messageBufferPos + numRead] = (char) c;
-		messageBuffer[messageBufferPos + numRead + 1] = '\0';
+		messageBuffer2[messageBufferPos + numRead] = (char) c;
+		messageBuffer2[messageBufferPos + numRead + 1] = '\0';
 		if (messageBufferState == MESSAGE_INCOMPLETE) {
 			if ((messageBufferPos + numRead != 1) && (c == '^')) {
 				messageBufferState = MESSAGE_INVALID;
@@ -75,6 +161,7 @@ uint8_t clearMessageFromBuffer(void) {
 	// TODO: Implement
 	return MESSAGE_INCOMPLETE;
 }
+#endif
 
 template <class number>
 // Attempts to parse str as a number of the specified type. If successful, stores the result in value
