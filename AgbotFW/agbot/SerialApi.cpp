@@ -23,10 +23,21 @@ static uint8_t messageProcessIndex = 0;
 // handler could be registered that would, say, print a message to the serial port every time an overflow occurs
 static bool blockNewMessages = false;
 
-static void clearMessage(uint8_t index) {
+// Private helper function that sets every byte in messageBuffer[index] to '\0'
+static inline void clearMessage(uint8_t index) {
 	for (uint8_t i = 0; i < MAX_MESSAGE_SIZE + 1; i++) {
 		messageBuffer[index][i] = '\0';
 	}
+}
+
+void initSerialApi(void) {
+	for (uint8_t i = 0; i < MESSAGE_BUFFER_SIZE; i++) {
+		clearMessage(i);
+	}
+	messageReadIndex = 0;
+	messageReadPosn = 0;
+	messageProcessIndex = 0;
+	Serial.begin(BAUD_RATE);
 }
 
 // Reads character(s) from the ArduinoCore serial buffer into a message buffer for processing.
@@ -172,7 +183,7 @@ template <class number>
 // does NOT support negative numbers. This function should assume that str is a decimal string unless
 // it starts with 0x, in which case it will be parsed as hexadecimal
 bool tryParseNum(const char *str, number *value, number maxValue) {
-	if (str[0] == '0' && str[2] == 'x') {
+	if (str[0] == '0' && str[1] == 'x') {
 		return tryParseDigits(str + 2, value, maxValue, 16);
 	}
 	else {

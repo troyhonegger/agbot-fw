@@ -22,8 +22,12 @@
 #define MESSAGE_BUFFER_SIZE (8)
 #define MAX_MESSAGE_SIZE (16)
 
+#define BAUD_RATE (9600)
+
 #define MESSAGE_START ('^')
 #define MESSAGE_END ('\n')
+
+void initSerialApi(void);
 
 // Returns true if a serial message is available.
 bool serialMessageAvailable(void);
@@ -39,6 +43,9 @@ void readSerial(void);
 // To avoid this, call getSerialMessage() and immediately process the message - do not call
 // readSerial() in between.
 char *getSerialMessage(void);
+
+#define OLD_SERIAL_API
+#undef OLD_SERIAL_API
 
 #ifdef OLD_SERIAL_API
 // The maximum length of a message (note that the message buffer is one character larger than this to
