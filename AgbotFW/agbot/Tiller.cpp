@@ -33,7 +33,6 @@ static inline int tillerLowerPin(uint8_t tillerId) { return MIN_TILLER_PIN + til
 
 #ifdef TILLER_HEIGHT_SENSORS
 
-// TODO: I forget if this should be analog pin 0 or analog pin 3 so as to not conflict with the sprayer pins
 #define MIN_TILLER_HEIGHT_SENSOR_PIN (PIN_A3)
 static inline uint8_t tillerHeightSensorPin(uint8_t tillerId) { return MIN_TILLER_HEIGHT_SENSOR_PIN + tillerId; }
 
@@ -124,6 +123,23 @@ void scheduleTillerLower(uint8_t tillers) {
 			}
 			tillerList[i].raiseTime = millis() + getTotalDelay() + getPrecision() / 2;
 			tillerList[i].state = TILLER_PROCESS_SCHEDULED;
+		}
+		bitmask <<= 1;
+	}
+}
+
+// Cancels any scheduled tiller operations for the specified tillers and raises the given tillers. tillers is a bitfield
+// here, NOT an array index. This should only be called when in process mode - in diag mode, use diagRaiseTiller(),
+// diagStopTiller(), or diagSetTiller(MAX_TILLER_HEIGHT)
+void resetTillers(uint8_t tillers) {
+	if (estopEngaged) return;
+	uint8_t bitmask = 1;
+	for (int i = 0; i < NUM_TILLERS; i++) {
+		if (tillers & bitmask) {
+			if (tillerList[i].state == TILLER_PROCESS_SCHEDULED || tillerList[i].state == TILLER_PROCESS_LOWERING) {
+				tillerList[i].lowerTime = tillerList[i].raiseTime = millis();
+				tillerList[i].state = TILLER_PROCESS_RAISING;
+			}
 		}
 		bitmask <<= 1;
 	}

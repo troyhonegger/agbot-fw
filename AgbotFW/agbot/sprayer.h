@@ -61,6 +61,10 @@ void sprayersEnterDiagMode(void);
 // sprayers is a bitfield here, NOT an array index. This should only be called when in process mode.
 void scheduleSpray(uint8_t sprayers);
 
+// Shuts off the given sprayers and cancels any scheduled spray operations for them. sprayers is a bitfield here,
+// NOT an array index. This should only be called when in process mode - in diag mode, use diagSetSprayer()
+void resetSprayers(uint8_t sprayers);
+
 // Performs any scheduled set sprayer operations. This should be called every loop iteration. In diag mode, it will have no effect.
 void updateSprayers(void);
 

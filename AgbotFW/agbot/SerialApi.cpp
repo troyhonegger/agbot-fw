@@ -40,6 +40,60 @@ void initSerialApi(void) {
 	Serial.begin(BAUD_RATE);
 }
 
+enum msgCommandType getMessageType(char *message) {
+	if (*message == MESSAGE_START) {
+		switch (message[1]) {
+			case 'R':
+			case 'r':
+				return MSG_CMD_RESET;
+			case 'M':
+			case 'm':
+				return MSG_CMD_SET_MODE;
+			case 'G':
+			case 'g':
+				return MSG_CMD_GET_STATE;
+			case 'C':
+			case 'c':
+				return MSG_CMD_SET_CONFIG;
+			case 'D':
+			case 'd':
+				return MSG_CMD_DIAG;
+			case 'P':
+			case 'p':
+				return MSG_CMD_PROCESS;
+		}
+	}
+	return MSG_CMD_UNRECOGNIZED;
+};
+
+size_t printStartMessage(enum msgLevel level) {
+	size_t millisNumPrinted = Serial.print(millis());
+	switch (level) {
+		case MSG_LVL_VERBOSE:
+			return millisNumPrinted + Serial.print(F(" [VERBOSE] "));
+		case MSG_LVL_DEBUG:
+			return millisNumPrinted + Serial.print(F(" [DEBUG] "));
+		case MSG_LVL_INFORMATION:
+			return millisNumPrinted + Serial.print(F(" [INFORMATION] "));
+		case MSG_LVL_WARNING:
+			return millisNumPrinted + Serial.print(F(" [WARNING] "));
+		case MSG_LVL_ERROR:
+			return millisNumPrinted + Serial.print(F(" [ERROR] "));
+		default:
+			return millisNumPrinted + Serial.print(F(" [UNKNOWN] "));
+	}
+}
+size_t printMessage(enum msgLevel level, const char *msg) {
+	size_t numPrinted = printStartMessage(level);
+	numPrinted += Serial.print(msg);
+	return numPrinted + Serial.print('\n');
+}
+size_t printMessage(enum msgLevel level, const __FlashStringHelper *msg) {
+	size_t numPrinted = printStartMessage(level);
+	numPrinted += Serial.print(msg);
+	return numPrinted + Serial.print('\n');
+}
+
 // Reads character(s) from the ArduinoCore serial buffer into a message buffer for processing.
 // Overflow flag ON - ignore all messages until it's cleared.
 // Posn >= MAX_MESSAGE_SIZE: clear message buffer, reset posn = 0
@@ -109,99 +163,35 @@ char *getSerialMessage(void) {
 	}
 }
 
-#ifdef OLD_SERIAL_API
-// This string is guaranteed to be null-terminated at the end of the last message and at the end of the buffer,
-// but every char after the last message may not necessarily be set to '\0'.
-char messageBuffer2[MAX_MESSAGE_SIZE + 1];
-
-// This flag is used internally by this module to reflect the state of the buffer. It is updated after every
-// read and update operation.
-static uint8_t messageBufferState;
-
-// This flag is used internally by this module to reflect the index of the first empty character in the buffer.
-// It is updated after every read and update operation.
-static uint8_t messageBufferPos;
-
-// Initializes the serial port to begin sending and receiving messages.
-void initSerialApi(void) {
-	Serial.begin(9600);
-	messageBuffer2[0] = '\0';
-	messageBuffer2[MAX_MESSAGE_SIZE] = '\0';
-	messageBufferPos = 0;
-	messageBufferState = MESSAGE_INCOMPLETE;
-}
-
-// Updates the message buffer with any data from the serial port and returns the buffer's state.
-uint8_t updateMessageBuffer(void) {
-	uint8_t numRead = 0;
-	while (Serial.available()) {
-		if (messageBufferPos + numRead == MAX_MESSAGE_SIZE) { // always check for buffer overflow
-			messageBufferState = MESSAGE_INVALID;
-			break;
-		}
-
-		int c = Serial.read();
-		if (c == -1 || c == '\0') {
-			continue;
-		}
-		numRead++;
-		
-		messageBuffer2[messageBufferPos + numRead] = (char) c;
-		messageBuffer2[messageBufferPos + numRead + 1] = '\0';
-		if (messageBufferState == MESSAGE_INCOMPLETE) {
-			if ((messageBufferPos + numRead != 1) && (c == '^')) {
-				messageBufferState = MESSAGE_INVALID;
-			}
-			else if (c == '\n') {
-				messageBufferState = MESSAGE_READY;
-			}
-		}
-	}
-	return messageBufferState;
-}
-
-// Returns the current message's state - one of MESSAGE_INCOMPLETE, MESSAGE_INVALID, or MESSAGE_READY
-uint8_t getMessageState(void) { return messageBufferState; }
-
-// Clears the current message from the buffer, until the end of the buffer is reached or a newline
-// character '\n' is encountered, and returns the buffer's new state. It is expected that the buffer
-// is in the MESSAGE_READY or MESSAGE_INVALID state at the time - if not, this function will clear the
-// entire buffer. Note that this function clears only a single message, not necessarily the entire
-// buffer, so to clear the entire buffer it may be necessary to call this method more than once.
-uint8_t clearMessageFromBuffer(void) {
-	// TODO: Implement
-	return MESSAGE_INCOMPLETE;
-}
-#endif
-
 template <class number>
-// Attempts to parse str as a number of the specified type. If successful, stores the result in value
-// and returns true. If unsuccessful, returns false (and the value of value is undefined). Note that the
-// parser should include "overflow detection" - if at any point value comes to exceed maxValue, or
-// if parsing the next character of the string decreases rather than increases the value of the result,
-// an overflow is considered to have occurred and false should be returned. Consequently, this function
-// does NOT support negative numbers. This function should assume that str is a decimal string unless
-// it starts with 0x, in which case it will be parsed as hexadecimal
-bool tryParseNum(const char *str, number *value, number maxValue) {
+// Parses str as a number of the specified type and stores the result in value. Stops at the first
+// invalid character and returns the number of characters read (if successful), 0 (if no characters
+// were read), or -1 (in the event of an arithmetic overflow). If at any point value comes to exceed
+// maxValue, or if parsing the next character of the string decreases rather than increases the value
+// of the result, an overflow is considered to have occurred and -1 is returned. Consequently,
+// this function does NOT support negative numbers. This function should assume that str is a decimal
+// string unless it starts with 0x, in which case it will be parsed as hexadecimal
+int8_t parseNum(const char *str, number *value, number maxValue) {
 	if (str[0] == '0' && str[1] == 'x') {
-		return tryParseDigits(str + 2, value, maxValue, 16);
+		return parseDigits(str + 2, value, maxValue, 16);
 	}
 	else {
-		return tryParseDigits(str, value, maxValue, 10);
+		return parseDigits(str, value, maxValue, 10);
 	}
 }
 
-// Attempts to parse str as a number of the specified type, in the specified radix (note that the parser
-// is case-insensitive and therefore radixes are limited to between 1 and 36. If successful, stores the
-// result in value and returns true. If unsuccessful, returns false (and the value of value is undefined).
-// Note that the parser should include "overflow detection" - if at any point value comes to exceed maxValue,
-// or if parsing the next character of the string decreases rather than increases the value of the result,
-// an overflow is considered to have occurred and false should be returned. Consequently, this function
-// does NOT support negative numbers.
+// Parses str as a number of the specified type, in the specified radix (note that the parser is case-
+// insensitive and therefore radixes must be between 1 and 36), and stores the result in value. Stops at
+// the first invalid character and returns the number of characters read (if successful), 0 (if no
+// characters were read), or -1 (in the event of an arithmetic overflow). If at any point value comes
+// to exceed maxValue, or if parsing the next character of the string decreases rather than increases
+// the value of the result, an overflow is considered to have occurred and -1 is returned.
+// Consequently, this function does NOT support negative numbers.
 template <class number>
-bool tryParseDigits(const char *str, number *value, number maxValue, uint8_t radix) {
+int8_t parseDigits(const char *str, number *value, number maxValue, uint8_t radix) {
 	if (radix == 0 || radix > 36) return false;
 	*value = 0;
+	int8_t numCharsRead = 0;
 	for (; *str != '\0'; str++) {
 		uint8_t digit;
 		if ('0' <= *str && *str <= '9') {
@@ -213,19 +203,20 @@ bool tryParseDigits(const char *str, number *value, number maxValue, uint8_t rad
 		else if ('A' <= *str && *str <= 'Z') {
 			digit = *str + 10 - 'A';
 		}
-		else { // invalid character
-			return false;
+		else { // non-alphanumeric character
+			break;
 		}
-		if (digit >= radix) { // invalid character
-			return false;
+		if (digit >= radix) { // character too great for radix
+			break;
 		}
 		number newValue = *value * radix + digit;
 		if (newValue < *value || newValue > maxValue) { // overflow error
-			return false;
+			return PARSE_NUM_ERROR;
 		}
 		else {
 			*value = newValue;
+			numCharsRead++;
 		}
 	}
-	return true;
+	return numCharsRead;
 }

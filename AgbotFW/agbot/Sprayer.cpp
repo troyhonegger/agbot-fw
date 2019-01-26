@@ -84,6 +84,24 @@ void scheduleSpray(uint8_t sprayers) {
 	}
 }
 
+// Shuts off the given sprayers and cancels any scheduled spray operations for them. sprayers is a bitfield here,
+// NOT an array index. This should only be called when in process mode - in diag mode, use diagSetSprayer()
+void resetSprayers(uint8_t sprayers) {
+	if (estopEngaged) return;
+	uint8_t bitmask = 1;
+	for (uint8_t i = 0; i < NUM_SPRAYERS; i++) {
+		if (sprayers & bitmask) {
+			if (sprayerList[i].state == SPRAYER_PROCESS_SCHEDULED || sprayerList[i].state == SPRAYER_PROCESS_ON) {
+				digitalWrite(sprayerPinNumber(i), SPRAYER_OFF_VOLTAGE);
+				sprayerList[i].onTime = sprayerList[i].offTime = millis();
+				sprayerList[i].state = SPRAYER_PROCESS_OFF;
+				sprayerList[i].status = SPRAYER_OFF;
+			}
+		}
+		bitmask <<= 1;
+	}
+}
+
 // Performs any scheduled set sprayer operations. This should be called every loop iteration. In diag mode, it will have no effect.
 void updateSprayers(void) {
 	if (estopEngaged) return;

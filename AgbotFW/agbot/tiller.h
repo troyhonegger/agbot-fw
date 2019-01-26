@@ -70,6 +70,11 @@ void tillersEnterDiagMode(void);
 // tillers is a bitfield here, NOT an array index. This should only be called when in process mode.
 void scheduleTillerLower(uint8_t tillers);
 
+// Cancels any scheduled tiller operations for the specified tillers and raises the given tillers. tillers is a bitfield
+// here, NOT an array index. This should only be called when in process mode - in diag mode, use diagRaiseTiller(),
+// diagStopTiller(), or diagSetTiller(MAX_TILLER_HEIGHT)
+void resetTillers(uint8_t tillers);
+
 // Performs any scheduled operations and updates the actualHeight and dh fields of all tillers, performing
 // I/O where necessary. This should be called every loop iteration (in both diag and process mode), as neither
 // diag nor processing functions will directly perform I/O - instead, they will schedule the operation(s) to

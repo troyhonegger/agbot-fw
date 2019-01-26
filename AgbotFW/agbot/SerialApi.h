@@ -27,7 +27,36 @@
 #define MESSAGE_START ('^')
 #define MESSAGE_END ('\n')
 
+enum msgCommandType {
+	MSG_CMD_UNRECOGNIZED,
+	MSG_CMD_RESET,
+	MSG_CMD_SET_MODE,
+	MSG_CMD_GET_STATE,
+	MSG_CMD_SET_CONFIG,
+	MSG_CMD_DIAG,
+	MSG_CMD_PROCESS
+};
+
+enum msgLevel {
+	// we probably won't even send anything of this level - if it's this insignificant, it's not worth the clock cycles to send it
+	MSG_LVL_VERBOSE,
+	// slightly more important events - still probably not significant enough to be worth the effort of sending
+	MSG_LVL_DEBUG,
+	// high-level actions (i.e. "entering diagnostics mode") and responses to MSG_GET_STATE requests
+	MSG_LVL_INFORMATION,
+	// exceptional but not irrecoverable errors (for example, "received unrecognized command")
+	MSG_LVL_WARNING,
+	// an e-stop was pressed, the world is ending, or something else of similar or greater importance
+	MSG_LVL_ERROR
+};
+
 void initSerialApi(void);
+
+enum msgCommandType getMessageType(char *message);
+
+size_t printStartMessage(enum msgLevel level);
+size_t printMessage(enum msgLevel level, const char *msg);
+size_t printMessage(enum msgLevel level, const __FlashStringHelper *msg);
 
 // Returns true if a serial message is available.
 bool serialMessageAvailable(void);
@@ -44,63 +73,26 @@ void readSerial(void);
 // readSerial() in between.
 char *getSerialMessage(void);
 
-#define OLD_SERIAL_API
-#undef OLD_SERIAL_API
-
-#ifdef OLD_SERIAL_API
-// The maximum length of a message (note that the message buffer is one character larger than this to
-// allow space for a null terminator).
-#define MAX_MESSAGE_SIZE (64)
-
-// The message buffer does not yet have a complete message.
-#define MESSAGE_INCOMPLETE (0)
-// The message buffer contains invalid data (for example, it does not start with a caret, it contains a
-// caret in the body, or the message overflows the buffer). The buffer should be cleared (and a warning
-// logged) when this is the state.
-#define MESSAGE_INVALID (1)
-// A valid message is ready and should be processed and cleared from the buffer to allow for more messages.
-#define MESSAGE_READY (2)
-
-// This string is guaranteed to be null-terminated at the end of the last message and at the end of the buffer,
-// but every char after the last message may not necessarily be set to '\0'.
-extern char messageBuffer2[MAX_MESSAGE_SIZE + 1];
-
-// Initializes the serial port to begin sending and receiving messages.
-void initSerialApi(void);
-
-// Updates the message buffer with any data from the serial port and returns the buffer's state.
-uint8_t updateMessageBuffer(void);
-
-// Returns the buffer's state - one of MESSAGE_INCOMPLETE, MESSAGE_INVALID, or MESSAGE_READY
-uint8_t getMessageState(void);
-
-// Clears the current message from the buffer, until the end of the buffer is reached or a newline
-// character '\n' is encountered, and returns the buffer's new state. It is expected that the buffer
-// is in the MESSAGE_READY or MESSAGE_INVALID state at the time - if not, this function will clear the
-// entire buffer. Note that this function clears only a single message, not necessarily the entire
-// buffer, so to clear the entire buffer it may be necessary to call this method more than once.
-uint8_t clearMessageFromBuffer(void);
-#endif
-
+#define PARSE_NUM_ERROR (-1)
 
 template <class number>
-// Attempts to parse str as a number of the specified type. If successful, stores the result in value
-// and returns true. If unsuccessful, returns false (and the value of value is undefined). Note that the
-// parser should include "overflow detection" - if at any point value comes to exceed maxValue, or
-// if parsing the next character of the string decreases rather than increases the value of the result,
-// an overflow is considered to have occurred and false should be returned. Consequently, this function
-// does NOT support negative numbers. This function should assume that str is a decimal string unless
-// it starts with 0x, in which case it will be parsed as hexadecimal
-bool tryParseNum(const char *str, number *value, number maxValue);
+// Parses str as a number of the specified type and stores the result in value. Stops at the first
+// invalid character and returns the number of characters read (if successful), 0 (if no characters
+// were read), or -1 (in the event of an arithmetic overflow). If at any point value comes to exceed
+// maxValue, or if parsing the next character of the string decreases rather than increases the value
+// of the result, an overflow is considered to have occurred and -1 should be returned. Consequently,
+// this function does NOT support negative numbers. This function should assume that str is a decimal
+// string unless it starts with 0x, in which case it will be parsed as hexadecimal
+int8_t parseNum(const char *str, number *value, number maxValue);
 
-// Attempts to parse str as a number of the specified type, in the specified radix (note that the parser
-// is case-insensitive and therefore radixes are limited to between 1 and 36. If successful, stores the
-// result in value and returns true. If unsuccessful, returns false (and the value of value is undefined).
-// Note that the parser should include "overflow detection" - if at any point value comes to exceed maxValue,
-// or if parsing the next character of the string decreases rather than increases the value of the result,
-// an overflow is considered to have occurred and false should be returned. Consequently, this function
-// does NOT support negative numbers.
+// Parses str as a number of the specified type, in the specified radix (note that the parser is case-
+// insensitive and therefore radixes must be between 1 and 36), and stores the result in value. Stops at
+// the first invalid character and returns the number of characters read (if successful), 0 (if no
+// characters were read), or -1 (in the event of an arithmetic overflow). If at any point value comes
+// to exceed maxValue, or if parsing the next character of the string decreases rather than increases
+// the value of the result, an overflow is considered to have occurred and -1 should be returned.
+// Consequently, this function does NOT support negative numbers.
 template <class number>
-bool tryParseDigits(const char *str, number *value, number maxValue, uint8_t radix);
+int8_t parseDigits(const char *str, number *value, number maxValue, uint8_t radix);
 
 #endif /* SERIALAPI_H_ */
