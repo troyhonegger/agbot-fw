@@ -75,16 +75,6 @@ char *getSerialMessage(void);
 
 #define PARSE_NUM_ERROR (-1)
 
-template <class number>
-// Parses str as a number of the specified type and stores the result in value. Stops at the first
-// invalid character and returns the number of characters read (if successful), 0 (if no characters
-// were read), or -1 (in the event of an arithmetic overflow). If at any point value comes to exceed
-// maxValue, or if parsing the next character of the string decreases rather than increases the value
-// of the result, an overflow is considered to have occurred and -1 should be returned. Consequently,
-// this function does NOT support negative numbers. This function should assume that str is a decimal
-// string unless it starts with 0x, in which case it will be parsed as hexadecimal
-int8_t parseNum(const char *str, number *value, number maxValue);
-
 // Parses str as a number of the specified type, in the specified radix (note that the parser is case-
 // insensitive and therefore radixes must be between 1 and 36), and stores the result in value. Stops at
 // the first invalid character and returns the number of characters read (if successful), 0 (if no
@@ -93,6 +83,54 @@ int8_t parseNum(const char *str, number *value, number maxValue);
 // the value of the result, an overflow is considered to have occurred and -1 should be returned.
 // Consequently, this function does NOT support negative numbers.
 template <class number>
-int8_t parseDigits(const char *str, number *value, number maxValue, uint8_t radix);
+int8_t parseDigits(const char *str, number *value, number maxValue, uint8_t radix) {
+	if (radix == 0 || radix > 36) return false;
+	*value = 0;
+	int8_t numCharsRead = 0;
+	for (; *str != '\0'; str++) {
+		uint8_t digit;
+		if ('0' <= *str && *str <= '9') {
+			digit = *str - '0';
+		}
+		else if ('a' <= *str && *str <= 'z') {
+			digit = *str + 10 - 'a';
+		}
+		else if ('A' <= *str && *str <= 'Z') {
+			digit = *str + 10 - 'A';
+		}
+		else { // non-alphanumeric character
+			break;
+		}
+		if (digit >= radix) { // character too great for radix
+			break;
+		}
+		number newValue = *value * radix + digit;
+		if (newValue < *value || newValue > maxValue) { // overflow error
+			return PARSE_NUM_ERROR;
+		}
+		else {
+			*value = newValue;
+			numCharsRead++;
+		}
+	}
+	return numCharsRead;
+}
+
+// Parses str as a number of the specified type and stores the result in value. Stops at the first
+// invalid character and returns the number of characters read (if successful), 0 (if no characters
+// were read), or -1 (in the event of an arithmetic overflow). If at any point value comes to exceed
+// maxValue, or if parsing the next character of the string decreases rather than increases the value
+// of the result, an overflow is considered to have occurred and -1 should be returned. Consequently,
+// this function does NOT support negative numbers. This function should assume that str is a decimal
+// string unless it starts with 0x, in which case it will be parsed as hexadecimal
+template <class number>
+int8_t parseNum(const char *str, number *value, number maxValue) {
+	if (str[0] == '0' && str[1] == 'x') {
+		return parseDigits(str + 2, value, maxValue, 16);
+	}
+	else {
+		return parseDigits(str, value, maxValue, 10);
+	}
+}
 
 #endif /* SERIALAPI_H_ */

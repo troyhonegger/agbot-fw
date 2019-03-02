@@ -115,9 +115,9 @@ bool processGetStateCommand(char *message) {
 		case 'S':
 		case 's':
 			uint8_t sprayerId;
-			if (parseNum(message + 3, &sprayerId, NUM_SPRAYERS - 1) >= 1) {
+			if (parseNum<uint8_t>(message + 3, &sprayerId, NUM_SPRAYERS - 1) >= 1) {
 				printStartMessage(MSG_LVL_INFORMATION);
-				Serial.print(F("Sprayer ")); Serial.printNumber(sprayerId, 10);
+				Serial.print(F("Sprayer ")); Serial.print((int) sprayerId, 10);
 				if (sprayerList[sprayerId].status == SPRAYER_ON) {
 					Serial.print(F(" ON\n"));
 				}
@@ -132,10 +132,10 @@ bool processGetStateCommand(char *message) {
 		case 'T':
 		case 't':
 			uint8_t tillerId;
-			if (parseNum(message + 3, &tillerId, NUM_TILLERS - 1) >= 1) {
+			if (parseNum<uint8_t>(message + 3, &tillerId, NUM_TILLERS - 1) >= 1) {
 				printStartMessage(MSG_LVL_INFORMATION);
-				Serial.print(F("Tiller ")); Serial.printNumber(tillerId, 10);
-				Serial.print(F(": Actual Height=")); Serial.printNumber(tillerList[tillerId].actualHeight, 10);
+				Serial.print(F("Tiller ")); Serial.print((int) tillerId, 10);
+				Serial.print(F(": Actual Height=")); Serial.print((int) tillerList[tillerId].actualHeight, 10);
 				Serial.print(F(", Target Height="));
 				if (estopEngaged ||
 					tillerList[tillerId].state == TILLER_DIAG_RAISING ||
@@ -147,7 +147,7 @@ bool processGetStateCommand(char *message) {
 					Serial.print(F("<stop>"));
 				}
 				else {
-					Serial.printNumber(tillerList[tillerId].actualHeight, 10);
+					Serial.print((int) tillerList[tillerId].actualHeight, 10);
 				}
 				Serial.print(F(", Status="));
 				switch (tillerList[tillerId].dh) {
@@ -178,7 +178,7 @@ bool processGetStateCommand(char *message) {
 bool processsSetConfigCommand(char *message) {
 	if (!message[2] || (message[3] != '=')) { return false; }
 	unsigned long newValue;
-	if (parseNum(message + 4, &newValue, 0xFFFFFFFFL) <= 0) { return false; }
+	if (parseNum(message + 4, &newValue, 0xFFFFFFFFUL) <= 0) { return false; }
 	switch (message[2]) {
 		case 'P': // precision
 		case 'p':
