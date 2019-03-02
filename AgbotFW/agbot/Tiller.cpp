@@ -332,10 +332,10 @@ void estopTillers(void) {
 #include "Tiller.hpp"
 
 namespace agbot {
-	Tiller::Tiller(uint8_t id) :
+	Tiller::Tiller(uint8_t id, Config const& config) :
 			state(((id & 3) << 4) | static_cast<uint8_t>(TillerState::Unset)),
 			raiseTime(millis()), lowerTime(millis()),
-			targetHeight(STOP), actualHeight(MAX_HEIGHT) {
+			targetHeight(STOP), actualHeight(MAX_HEIGHT), config(config) {
 		pinMode(getRaisePin(), OUTPUT);
 		digitalWrite(getRaisePin(), LOW);
 		pinMode(getLowerPin(), OUTPUT);

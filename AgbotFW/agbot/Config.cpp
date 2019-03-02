@@ -70,3 +70,22 @@ void initConfig(void) {
 	EEPROM.get(TILLER_LOWER_TIME_EEPROM_LOCATION, tillerLowerTime);
 	EEPROM.get(TILLER_ACCURACY_EEPROM_LOCATION, tillerAccuracy);
 }
+
+#include "Config.hpp"
+
+namespace agbot{
+	Config::Config() {
+		for (uint8_t i = 0; i < NUM_SETTINGS; i++) {
+			EEPROM.get(i * SETTING_SIZE, settings[i]);
+		}
+	}
+
+	inline uint16_t Config::getSetting(Setting setting) const { return settings[static_cast<uint8_t>(setting)]; }
+	inline void Config::setSetting(Setting setting, uint16_t value) {
+		uint8_t index = static_cast<uint8_t>(setting);
+		if (settings[index] != value) {
+			settings[index] = value;
+			EEPROM.put(index * SETTING_SIZE, value);
+		}
+	}
+}

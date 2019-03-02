@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Common.hpp"
+#include "Config.hpp"
 
 namespace agbot {
 	enum class TillerState : uint8_t {
@@ -26,6 +27,7 @@ namespace agbot {
 		private:
 			unsigned long lowerTime; // If state is TillerState::ProcessScheuled, tiller must begin lowering by this time
 			unsigned long raiseTime; // If state is TillerState::ProcessLowering, tiller must begin raising by this time
+			Config const& config;
 			uint8_t state; // To save space, encodes TillerState in least significant 4 bits, id in next 2, and dh in next 2
 			uint8_t targetHeight;
 			uint8_t actualHeight;
@@ -35,10 +37,14 @@ namespace agbot {
 			inline uint8_t getRaisePin() const { return getId() * 2 + 2; }
 			inline uint8_t getLowerPin() const { return getRaisePin() + 1; }
 			inline uint8_t getHeightSensorPin() const { return PIN_A3 + getId(); }
+
+			// disallow copy constructor since Tiller interacts with hardware, which makes duplicate instances a bad idea
+			void operator =(Tiller const&) {}
+			Tiller(Tiller const& other) : config(other.config) { }
 		public:
 			// Initializes the tiller, sets up the GPIO pins, and performs any other necessary setup work.
 			// note that setMode() still needs to be called before the tiller can be actually used.
-			Tiller(uint8_t id);
+			Tiller(uint8_t id, Config const& config);
 
 			// Releases any resources held by the tiller - currently, this just means resetting the GPIO pins.
 			// This is implemented for completeness' sake, but it should really not be used in practice, as

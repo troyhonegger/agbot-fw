@@ -235,6 +235,9 @@
     <Compile Include="Common.hpp">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="Config.hpp">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="SerialApi.cpp">
       <SubType>compile</SubType>
     </Compile>

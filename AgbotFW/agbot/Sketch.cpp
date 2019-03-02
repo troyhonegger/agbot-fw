@@ -6,6 +6,11 @@
 #include "Sprayer.h"
 #include "Tiller.h"
 
+#include "Config.hpp"
+#include "Tiller.hpp"
+
+agbot::Config config;
+
 void setup() {
 	initConfig();
 	initTillers();
