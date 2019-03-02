@@ -232,6 +232,9 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Common.hpp">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="SerialApi.cpp">
       <SubType>compile</SubType>
     </Compile>
@@ -266,6 +269,9 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="Tiller.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="Tiller.hpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="TimeHelper.cpp">

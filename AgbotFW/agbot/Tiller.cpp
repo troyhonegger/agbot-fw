@@ -328,3 +328,86 @@ void estopTillers(void) {
 		tillerList[i].targetHeight = TILLER_STOP;
 	}
 }
+
+#include "Tiller.hpp"
+
+namespace agbot {
+	Tiller::Tiller(uint8_t id) :
+			state(((id & 3) << 4) | static_cast<uint8_t>(TillerState::Unset)),
+			raiseTime(millis()), lowerTime(millis()),
+			targetHeight(STOP), actualHeight(MAX_HEIGHT) {
+		pinMode(getRaisePin(), OUTPUT);
+		digitalWrite(getRaisePin(), LOW);
+		pinMode(getLowerPin(), OUTPUT);
+		digitalWrite(getLowerPin(), LOW);
+		pinMode(getHeightSensorPin(), INPUT);
+	}
+
+	Tiller::~Tiller() {
+		pinMode(getRaisePin(), INPUT);
+		pinMode(getLowerPin(), INPUT);
+	}
+
+	inline void Tiller::updateActualHeight() { actualHeight = map(analogRead(getHeightSensorPin()), 0, 1023, 0, MAX_HEIGHT); }
+
+	void Tiller::setMode(MachineMode mode) {
+		switch (mode) {
+			case MachineMode::Unset:
+				lowerTime = raiseTime = millis();
+				setState(TillerState::Unset);
+				targetHeight = STOP;
+				break;
+			case MachineMode::Process:
+				lowerTime = raiseTime = millis();
+				setState(TillerState::ProcessRaising);
+				targetHeight = MAX_HEIGHT;
+				break;
+			case MachineMode::Diag:
+				lowerTime = raiseTime = millis();
+				setState(TillerState::Diag);
+				targetHeight = STOP;
+				break;
+			default:
+				break;
+		}
+	}
+
+	void Tiller::setHeight(uint8_t height) {
+		if (getState() == TillerState::Diag) {
+			setTargetHeight(height);
+		}
+	}
+	
+	void Tiller::stop() {
+		switch (getState()) {
+			case TillerState::Diag:
+				setTargetHeight(STOP);
+			case TillerState::ProcessLowering:
+			case TillerState::ProcessRaising:
+			case TillerState::ProcessScheduled:
+				raiseTime = lowerTime = millis();
+				setState(TillerState::ProcessStopped);
+				setTargetHeight(STOP);
+		}
+	}
+
+	void Tiller::scheduleLower() {
+		// TODO: implement
+	}
+
+	void Tiller::cancelLower() {
+		if (getState() == TillerState::ProcessScheduled || getState() == TillerState::ProcessRaising) {
+			raiseTime = lowerTime = millis();
+			setState(TillerState::ProcessRaising);
+			setTargetHeight(MAX_HEIGHT);
+		}
+	}
+
+	void Tiller::resume() {
+		// TODO: implement
+	}
+
+	void Tiller::update() {
+		// TODO: implement
+	}
+}
