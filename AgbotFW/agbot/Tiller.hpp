@@ -25,13 +25,15 @@ namespace agbot {
 			static const uint8_t MAX_HEIGHT = 100;
 			static const uint8_t STOP = 255;
 		private:
+			static const uint8_t ON_VOLTAGE = HIGH;
+			static const uint8_t OFF_VOLTAGE = LOW;
 			unsigned long lowerTime; // If state is TillerState::ProcessScheuled, tiller must begin lowering by this time
 			unsigned long raiseTime; // If state is TillerState::ProcessLowering, tiller must begin raising by this time
 			Config const& config;
 			uint8_t state; // To save space, encodes TillerState in least significant 4 bits, id in next 2, and dh in next 2
 			uint8_t targetHeight;
 			uint8_t actualHeight;
-			inline void setState(TillerState) { Tiller::state = (Tiller::state & 0xF0) | state; }
+			inline void setState(TillerState state) { Tiller::state = (Tiller::state & 0xF0) | static_cast<uint8_t>(state); }
 			inline void setDH(int8_t dh) { state = (state & 0x3F) | ((dh < 0 ? -1 : dh & 3) << 6); }
 			
 			inline uint8_t getRaisePin() const { return getId() * 2 + 2; }
@@ -82,7 +84,7 @@ namespace agbot {
 			void stop();
 
 			// Signals to the tiller that a weed has been sighted up ahead and the tiller should begin lowering at some point in the future.
-			// The exact time is computed from the configuration settings. This command should be called for every weed that is sighted,
+			// The exact time is computed from the configuration settings. This command should be issued for every weed that is sighted,
 			// even if the tiller is already lowered. If enough time passes without receiving a scheduleLower() command, the tiller will raise
 			// back up. This function is valid only in processing mode
 			void scheduleLower();

@@ -265,6 +265,9 @@
     <Compile Include="Sprayer.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="Sprayer.hpp">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="TillAndSprayDemo.cpp">
       <SubType>compile</SubType>
     </Compile>

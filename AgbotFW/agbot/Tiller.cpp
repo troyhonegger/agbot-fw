@@ -337,9 +337,9 @@ namespace agbot {
 			raiseTime(millis()), lowerTime(millis()),
 			targetHeight(STOP), actualHeight(MAX_HEIGHT), config(config) {
 		pinMode(getRaisePin(), OUTPUT);
-		digitalWrite(getRaisePin(), LOW);
+		digitalWrite(getRaisePin(), OFF_VOLTAGE);
 		pinMode(getLowerPin(), OUTPUT);
-		digitalWrite(getLowerPin(), LOW);
+		digitalWrite(getLowerPin(), OFF_VOLTAGE);
 		pinMode(getHeightSensorPin(), INPUT);
 	}
 
@@ -394,15 +394,21 @@ namespace agbot {
 	}
 
 	void Tiller::scheduleLower() {
-		if (getState() == TillerState::ProcessRaising) {
-			// lowerTime = millis() + responseDelay - (raisedHeight - loweredHeight)*tillerLowerTime/100 - precision/2
-			lowerTime = millis() + config.get(Setting::ResponseDelay) -
-							((config.get(Setting::TillerRaisedHeight) - config.get(Setting::TillerLoweredHeight))*config.get(Setting::TillerLowerTime)
-							 + config.get(Setting::Precision) * 50) / 100;
-			raiseTime = millis() + config.get(Setting::ResponseDelay) + config.get(Setting::Precision) / 2;
-			setState(TillerState::ProcessScheduled);
+		bool isProcessing = false;
+		switch (getState()) {
+			case TillerState::ProcessRaising:
+			case TillerState::ProcessLowering:
+				isProcessing = true;
+				// lowerTime = millis() + responseDelay - (raisedHeight - loweredHeight)*tillerLowerTime/100 - precision/2
+				lowerTime = millis() + config.get(Setting::ResponseDelay) -
+					((config.get(Setting::TillerRaisedHeight) - config.get(Setting::TillerLoweredHeight))*config.get(Setting::TillerLowerTime)
+					+ config.get(Setting::Precision) * 50) / 100;
+				break;
+			case TillerState::ProcessScheduled:
+				isProcessing = true;
+				break;
 		}
-		else if (getState() == TillerState::ProcessLowering || getState() == TillerState::ProcessScheduled) {
+		if (isProcessing) {
 			raiseTime = millis() + config.get(Setting::ResponseDelay) + config.get(Setting::Precision) / 2;
 			setState(TillerState::ProcessScheduled);
 		}
@@ -445,16 +451,16 @@ namespace agbot {
 			setDH(newDh);
 			switch (newDh) {
 				case 0:
-					digitalWrite(getRaisePin(), LOW);
-					digitalWrite(getLowerPin(), LOW);
+					digitalWrite(getRaisePin(), OFF_VOLTAGE);
+					digitalWrite(getLowerPin(), OFF_VOLTAGE);
 					break;
 				case 1:
-					digitalWrite(getLowerPin(), LOW);
-					digitalWrite(getRaisePin(), HIGH);
+					digitalWrite(getLowerPin(), OFF_VOLTAGE);
+					digitalWrite(getRaisePin(), ON_VOLTAGE);
 					break;
 				case -1:
-					digitalWrite(getRaisePin(), LOW);
-					digitalWrite(getLowerPin(), HIGH);
+					digitalWrite(getRaisePin(), OFF_VOLTAGE);
+					digitalWrite(getLowerPin(), ON_VOLTAGE);
 					break;
 			}
 		}
