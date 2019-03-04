@@ -360,7 +360,7 @@ namespace agbot {
 			case MachineMode::Process:
 				lowerTime = raiseTime = millis();
 				setState(TillerState::ProcessRaising);
-				targetHeight = MAX_HEIGHT;
+				targetHeight = config.get(Setting::TillerRaisedHeight);
 				break;
 			case MachineMode::Diag:
 				lowerTime = raiseTime = millis();
@@ -374,40 +374,89 @@ namespace agbot {
 
 	void Tiller::setHeight(uint8_t height) {
 		if (getState() == TillerState::Diag) {
-			setTargetHeight(height);
+			targetHeight = height;
 		}
 	}
 	
 	void Tiller::stop() {
 		switch (getState()) {
 			case TillerState::Diag:
-				setTargetHeight(STOP);
+				targetHeight = STOP;
+				break;
 			case TillerState::ProcessLowering:
 			case TillerState::ProcessRaising:
 			case TillerState::ProcessScheduled:
 				raiseTime = lowerTime = millis();
 				setState(TillerState::ProcessStopped);
-				setTargetHeight(STOP);
+				targetHeight = STOP;
+				break;
 		}
 	}
 
 	void Tiller::scheduleLower() {
-		// TODO: implement
+		if (getState() == TillerState::ProcessRaising) {
+			// lowerTime = millis() + responseDelay - (raisedHeight - loweredHeight)*tillerLowerTime/100 - precision/2
+			lowerTime = millis() + config.get(Setting::ResponseDelay) -
+							((config.get(Setting::TillerRaisedHeight) - config.get(Setting::TillerLoweredHeight))*config.get(Setting::TillerLowerTime)
+							 + config.get(Setting::Precision) * 50) / 100;
+			raiseTime = millis() + config.get(Setting::ResponseDelay) + config.get(Setting::Precision) / 2;
+			setState(TillerState::ProcessScheduled);
+		}
+		else if (getState() == TillerState::ProcessLowering || getState() == TillerState::ProcessScheduled) {
+			raiseTime = millis() + config.get(Setting::ResponseDelay) + config.get(Setting::Precision) / 2;
+			setState(TillerState::ProcessScheduled);
+		}
 	}
 
 	void Tiller::cancelLower() {
 		if (getState() == TillerState::ProcessScheduled || getState() == TillerState::ProcessRaising) {
 			raiseTime = lowerTime = millis();
 			setState(TillerState::ProcessRaising);
-			setTargetHeight(MAX_HEIGHT);
+			targetHeight = config.get(Setting::TillerRaisedHeight);
 		}
 	}
 
 	void Tiller::resume() {
-		// TODO: implement
+		if (getState() == TillerState::ProcessStopped) {
+			raiseTime = lowerTime = millis();
+			setState(TillerState::ProcessRaising);
+			targetHeight = config.get(Setting::TillerRaisedHeight);
+		}
 	}
 
 	void Tiller::update() {
-		// TODO: implement
+		if (getState() == TillerState::ProcessScheduled && timeElapsed(lowerTime)) {
+			setState(TillerState::ProcessLowering);
+			targetHeight = config.get(Setting::TillerLoweredHeight);
+		}
+		else if (getState() == TillerState::ProcessLowering && timeElapsed(raiseTime)) {
+			setState(TillerState::ProcessRaising);
+			targetHeight = config.get(Setting::TillerRaisedHeight);
+		}
+
+		updateActualHeight();
+		int8_t newDh = 0;
+		if (targetHeight != STOP) {
+			if (targetHeight - actualHeight > config.get(Setting::TillerAccuracy)) { newDh = 1; }
+			else if (targetHeight - actualHeight < -config.get(Setting::TillerAccuracy)) { newDh = -1; }
+		}
+
+		if (newDh != getDH()) {
+			setDH(newDh);
+			switch (newDh) {
+				case 0:
+					digitalWrite(getRaisePin(), LOW);
+					digitalWrite(getLowerPin(), LOW);
+					break;
+				case 1:
+					digitalWrite(getLowerPin(), LOW);
+					digitalWrite(getRaisePin(), HIGH);
+					break;
+				case -1:
+					digitalWrite(getRaisePin(), LOW);
+					digitalWrite(getLowerPin(), HIGH);
+					break;
+			}
+		}
 	}
 }

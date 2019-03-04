@@ -33,7 +33,7 @@ namespace agbot {
 			uint8_t actualHeight;
 			inline void setState(TillerState) { Tiller::state = (Tiller::state & 0xF0) | state; }
 			inline void setDH(int8_t dh) { state = (state & 0x3F) | ((dh < 0 ? -1 : dh & 3) << 6); }
-			inline void setTargetHeight(uint8_t target) { Tiller::targetHeight = targetHeight; }
+			
 			inline uint8_t getRaisePin() const { return getId() * 2 + 2; }
 			inline uint8_t getLowerPin() const { return getRaisePin() + 1; }
 			inline uint8_t getHeightSensorPin() const { return PIN_A3 + getId(); }
@@ -82,7 +82,7 @@ namespace agbot {
 			void stop();
 
 			// Signals to the tiller that a weed has been sighted up ahead and the tiller should begin lowering at some point in the future.
-			// The exact time is given by the tiller's MachineConfig member. This command should be called for every weed that is sighted,
+			// The exact time is computed from the configuration settings. This command should be called for every weed that is sighted,
 			// even if the tiller is already lowered. If enough time passes without receiving a scheduleLower() command, the tiller will raise
 			// back up. This function is valid only in processing mode
 			void scheduleLower();

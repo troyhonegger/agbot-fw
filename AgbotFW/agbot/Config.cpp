@@ -80,8 +80,8 @@ namespace agbot{
 		}
 	}
 
-	inline uint16_t Config::getSetting(Setting setting) const { return settings[static_cast<uint8_t>(setting)]; }
-	inline void Config::setSetting(Setting setting, uint16_t value) {
+	inline uint16_t Config::get(Setting setting) const { return settings[static_cast<uint8_t>(setting)]; }
+	inline void Config::set(Setting setting, uint16_t value) {
 		uint8_t index = static_cast<uint8_t>(setting);
 		if (settings[index] != value) {
 			settings[index] = value;
