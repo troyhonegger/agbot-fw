@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <Arduino.h>
 #include "Common.hpp"
 #include "Config.hpp"
 
@@ -22,6 +23,8 @@ namespace agbot {
 	};
 
 	class Sprayer {
+		public:
+			static const uint8_t COUNT = 7;
 		private:
 			static const uint8_t ON_VOLTAGE = LOW;
 			static const uint8_t OFF_VOLTAGE = HIGH;

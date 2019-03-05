@@ -247,22 +247,10 @@
     <Compile Include="Config.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="Config.h">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="Estop.cpp">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="Estop.h">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="Sketch.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="Sprayer.cpp">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="Sprayer.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="Sprayer.hpp">
@@ -274,16 +262,7 @@
     <Compile Include="Tiller.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="Tiller.h">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="Tiller.hpp">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="TimeHelper.cpp">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="TimeHelper.h">
       <SubType>compile</SubType>
     </Compile>
     <Content Include="readme.html">

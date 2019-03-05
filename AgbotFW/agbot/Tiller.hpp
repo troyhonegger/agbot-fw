@@ -22,6 +22,7 @@ namespace agbot {
 
 	class Tiller {
 		public:
+			static const uint8_t COUNT = 3;
 			static const uint8_t MAX_HEIGHT = 100;
 			static const uint8_t STOP = 255;
 		private:

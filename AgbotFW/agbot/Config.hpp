@@ -50,7 +50,7 @@ namespace agbot {
 			Config();
 
 			// Returns the specified setting from the cache.
-			uint16_t get(Setting) const;
+			inline uint16_t get(Setting setting) const { return settings[static_cast<uint8_t>(setting)]; }
 
 			// Writes the specified setting value to EEPROM memory and updates the cache. There is some overhead
 			// associated with this and, in general, it should only be done upon request over the API.
