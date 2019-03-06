@@ -46,8 +46,11 @@ namespace agbot {
 			void operator=(Config const&) {}
 			Config(Config const&) {}
 		public:
+			// Creates a new config object. Until begin() is called, any other member functions are still undefined.
+			Config() {}
+
 			// Loads the configuration settings from EEPROM memory.
-			Config();
+			void begin();
 
 			// Returns the specified setting from the cache.
 			inline uint16_t get(Setting setting) const { return settings[static_cast<uint8_t>(setting)]; }

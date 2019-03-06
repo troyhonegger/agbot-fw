@@ -6,20 +6,18 @@
 #include "Tiller.hpp"
 #include "Sprayer.hpp"
 
-// declaring all these as pointers bothers me - it wastes something like 24 bytes, and it requires the use of the new keyword in
-// the setup function. But this way the constructors are not called until the controller is ready to run.
-agbot::Config* config = nullptr;
-agbot::Tiller* tillers[agbot::Tiller::COUNT] = {0};
-agbot::Sprayer* sprayers[agbot::Sprayer::COUNT] = {0};
+agbot::Config config;
+agbot::Tiller tillers[agbot::Tiller::COUNT];
+agbot::Sprayer sprayers[agbot::Sprayer::COUNT];
 agbot::MachineMode currentMode = agbot::MachineMode::Unset;
 
 void setup() {
-	config = new agbot::Config();
-	for (uint8_t i = 0; i < sizeof(tillers)/sizeof(tillers[0]); i++) {
-		tillers[i] = new agbot::Tiller(i, *config);
+	config.begin();
+	for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
+		tillers[i].begin(i, &config);
 	}
-	for (uint8_t i = 0; i < sizeof(sprayers)/sizeof(sprayers[0]); i++) {
-		sprayers[i] = new agbot::Sprayer(i, *config);
+	for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
+		sprayers[i].begin(i, &config);
 	}
 	initSerialApi();
 }
@@ -27,19 +25,19 @@ void setup() {
 bool processResetCommand(char *message) {
 	switch (currentMode) {
 		case agbot::MachineMode::Process:
-			for (uint8_t i = 0; i < sizeof(sprayers)/sizeof(sprayers[0]); i++) {
-				sprayers[i]->cancelSpray();
+			for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
+				sprayers[i].cancelSpray();
 			}
-			for (uint8_t i = 0; i < sizeof(tillers)/sizeof(tillers[0]); i++) {
-				tillers[i]->cancelLower();
+			for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
+				tillers[i].cancelLower();
 			}
 			break;
 		case agbot::MachineMode::Diag:
-			for (uint8_t i = 0; i < sizeof(sprayers)/sizeof(sprayers[0]); i++) {
-				sprayers[i]->setIsOn(false);
+			for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
+				sprayers[i].setIsOn(false);
 			}
-			for (uint8_t i = 0; i < sizeof(tillers)/sizeof(tillers[0]); i++) {
-				tillers[i]->stop();
+			for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
+				tillers[i].stop();
 			}
 			break;
 		default: // unset mode - everything is already stopped
@@ -55,11 +53,11 @@ bool processSetModeCommand(char *message) {
 		case 'p':
 			if (currentMode != agbot::MachineMode::Process) {
 				currentMode = agbot::MachineMode::Process;
-				for (uint8_t i = 0; i < sizeof(tillers)/sizeof(tillers[0]); i++) {
-					tillers[i]->setMode(currentMode);
+				for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
+					tillers[i].setMode(currentMode);
 				}
-				for (uint8_t i = 0; i < sizeof(sprayers)/sizeof(sprayers[0]); i++) {
-					sprayers[i]->setMode(currentMode);
+				for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
+					sprayers[i].setMode(currentMode);
 				}
 				printMessage(MSG_LVL_INFORMATION, F("Machine is now in process mode."));
 			}
@@ -68,11 +66,11 @@ bool processSetModeCommand(char *message) {
 		case 'd':
 			if (currentMode != agbot::MachineMode::Diag) {
 				currentMode = agbot::MachineMode::Diag;
-				for (uint8_t i = 0; i < sizeof(tillers)/sizeof(tillers[0]); i++) {
-					tillers[i]->setMode(currentMode);
+				for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
+					tillers[i].setMode(currentMode);
 				}
-				for (uint8_t i = 0; i < sizeof(sprayers)/sizeof(sprayers[0]); i++) {
-					sprayers[i]->setMode(currentMode);
+				for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
+					sprayers[i].setMode(currentMode);
 				}
 				printMessage(MSG_LVL_INFORMATION, F("Machine is now in diag mode."));
 			}
@@ -107,27 +105,27 @@ bool processGetStateCommand(char *message) {
 				case 'P':
 				case 'p':
 					printStartMessage(MSG_LVL_INFORMATION);
-					Serial.print(F("Precision=")); Serial.print(config->get(agbot::Setting::Precision)); Serial.print('\n');
+					Serial.print(F("Precision=")); Serial.print(config.get(agbot::Setting::Precision)); Serial.print('\n');
 					return true;
 				case 'D':
 				case 'd':
 					printStartMessage(MSG_LVL_INFORMATION);
-					Serial.print(F("Response Delay=")); Serial.print(config->get(agbot::Setting::ResponseDelay)); Serial.print('\n');
+					Serial.print(F("Response Delay=")); Serial.print(config.get(agbot::Setting::ResponseDelay)); Serial.print('\n');
 					return true;
 				case 'A':
 				case 'a':
 					printStartMessage(MSG_LVL_INFORMATION);
-					Serial.print(F("Tiller Accuracy=")); Serial.print(config->get(agbot::Setting::TillerAccuracy)); Serial.print('\n');
+					Serial.print(F("Tiller Accuracy=")); Serial.print(config.get(agbot::Setting::TillerAccuracy)); Serial.print('\n');
 					return true;
 				case 'R':
 				case 'r':
 					printStartMessage(MSG_LVL_INFORMATION);
-					Serial.print(F("Tiller Raise Time=")); Serial.print(config->get(agbot::Setting::TillerLowerTime)); Serial.print('\n');
+					Serial.print(F("Tiller Raise Time=")); Serial.print(config.get(agbot::Setting::TillerLowerTime)); Serial.print('\n');
 					return true;
 				case 'L':
 				case 'l':
 					printStartMessage(MSG_LVL_INFORMATION);
-					Serial.print(F("Tiller Lower Time=")); Serial.print(config->get(agbot::Setting::TillerLowerTime)); Serial.print('\n');
+					Serial.print(F("Tiller Lower Time=")); Serial.print(config.get(agbot::Setting::TillerLowerTime)); Serial.print('\n');
 					return true;
 				default:
 					return false;
@@ -138,7 +136,7 @@ bool processGetStateCommand(char *message) {
 			if (parseNum<uint8_t>(message + 3, &sprayerId, agbot::Sprayer::COUNT - 1) >= 1) {
 				printStartMessage(MSG_LVL_INFORMATION);
 				Serial.print(F("Sprayer ")); Serial.print((int) sprayerId, 10);
-				if (sprayers[sprayerId]->isOn()) {
+				if (sprayers[sprayerId].isOn()) {
 					Serial.print(F(" ON\n"));
 				}
 				else {
@@ -155,16 +153,16 @@ bool processGetStateCommand(char *message) {
 			if (parseNum<uint8_t>(message + 3, &tillerId, agbot::Tiller::COUNT) >= 1) {
 				printStartMessage(MSG_LVL_INFORMATION);
 				Serial.print(F("Tiller ")); Serial.print((int) tillerId, 10);
-				Serial.print(F(": Actual Height=")); Serial.print((int) tillers[tillerId]->getActualHeight(), 10);
+				Serial.print(F(": Actual Height=")); Serial.print((int) tillers[tillerId].getActualHeight(), 10);
 				Serial.print(F(", Target Height="));
-				if (tillers[tillerId]->getTargetHeight() == agbot::Tiller::STOP) {
+				if (tillers[tillerId].getTargetHeight() == agbot::Tiller::STOP) {
 					Serial.print(F("<stop>"));
 				}
 				else {
-					Serial.print((int) tillers[tillerId]->getTargetHeight(), 10);
+					Serial.print((int) tillers[tillerId].getTargetHeight(), 10);
 				}
 				Serial.print(F(", Status="));
-				switch (tillers[tillerId]->getDH()) {
+				switch (tillers[tillerId].getDH()) {
 					case -1:
 						Serial.print(F(", Status=LOWERING\n"));
 						break;
@@ -196,13 +194,13 @@ bool processsSetConfigCommand(char *message) {
 	switch (message[2]) {
 		case 'P': // precision
 		case 'p':
-			config->set(agbot::Setting::Precision, newValue);
+			config.set(agbot::Setting::Precision, newValue);
 			printStartMessage(MSG_LVL_INFORMATION);
 			Serial.print(F("Set precision to ")); Serial.print(newValue); Serial.print('\n');
 			return true;
 		case 'D': // response delay
 		case 'd':
-			config->set(agbot::Setting::ResponseDelay, newValue);
+			config.set(agbot::Setting::ResponseDelay, newValue);
 			printStartMessage(MSG_LVL_INFORMATION);
 			Serial.print(F("Set response delay to ")); Serial.print(newValue); Serial.print('\n');
 			return true;
@@ -212,20 +210,20 @@ bool processsSetConfigCommand(char *message) {
 				return false;
 			}
 			else {
-				config->set(agbot::Setting::TillerAccuracy, newValue);
+				config.set(agbot::Setting::TillerAccuracy, newValue);
 				printStartMessage(MSG_LVL_INFORMATION);
 				Serial.print(F("Set tiller accuracy to ")); Serial.print(newValue); Serial.print('\n');
 				return true;
 			}
 		case 'R': // tiller raise time
 		case 'r':
-			config->set(agbot::Setting::TillerRaiseTime, newValue);
+			config.set(agbot::Setting::TillerRaiseTime, newValue);
 			printStartMessage(MSG_LVL_INFORMATION);
 			Serial.print(F("Set tiller raise time to ")); Serial.print(newValue); Serial.print('\n');
 			return true;
 		case 'L': // tiller lower time
 		case 'l':
-			config->set(agbot::Setting::TillerLowerTime, newValue);
+			config.set(agbot::Setting::TillerLowerTime, newValue);
 			printStartMessage(MSG_LVL_INFORMATION);
 			Serial.print(F("Set tiller lower time to ")); Serial.print(newValue); Serial.print('\n');
 			return true;
@@ -247,9 +245,9 @@ bool processProcessCommand(char *message) {
 	unsigned long code;
 	if (parseDigits(message + 2, &code, 0xFFFFFLU, 16) == 5) {
 		uint8_t tillerCode = ((code & 0x70000) ? 1 : 0) | ((code & 0x700) ? 2 : 0) | ((code & 0x7) ? 4 : 0);
-		for (uint8_t i = 0; i < sizeof(tillers)/sizeof(tillers[0]); i++) {
+		for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
 			if (tillerCode & (1<<i)) {
-				tillers[i]->scheduleLower();
+				tillers[i].scheduleLower();
 			}
 		}
 		// NOTE: the following mapping assumes that sprayer 0 sprays foxtail, sprayer 1 sprays cocklebur, sprayer 2 sprays ragweed,
@@ -257,9 +255,9 @@ bool processProcessCommand(char *message) {
 		// a different mapping could technically be configured in firmware, and even set on-the-fly via a saved setting. However,
 		// it's probably best to leave the mapping as it is and allow the software to map which weed corresponds to which bit.
 		uint8_t sprayerCode = ((code & 0xF000) >> 12) | (code & 0xF0);
-		for (uint8_t i = 1; i < sizeof(sprayers)/sizeof(sprayers[0]); i++) {
+		for (uint8_t i = 1; i < agbot::Sprayer::COUNT; i++) {
 			if (sprayerCode & (1<<i)) {
-				sprayers[i]->scheduleSpray();
+				sprayers[i].scheduleSpray();
 			}
 		}
 		return true;
@@ -317,10 +315,10 @@ void loop() {
 	if (serialMessageAvailable()) {
 		processMessage(getSerialMessage());
 	}
-	for (uint8_t i = 0; i < sizeof(tillers)/sizeof(tillers[0]); i++) {
-		tillers[i]->update();
+	for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
+		tillers[i].update();
 	}
-	for (uint8_t i = 0; i < sizeof(sprayers)/sizeof(sprayers[0]); i++) {
-		sprayers[i]->update();
+	for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
+		sprayers[i].update();
 	}
 }

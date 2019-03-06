@@ -30,7 +30,7 @@ namespace agbot {
 			static const uint8_t OFF_VOLTAGE = LOW;
 			unsigned long lowerTime; // If state is TillerState::ProcessScheuled, tiller must begin lowering by this time
 			unsigned long raiseTime; // If state is TillerState::ProcessLowering, tiller must begin raising by this time
-			Config const& config;
+			Config const* config;
 			uint8_t state; // To save space, encodes TillerState in least significant 4 bits, id in next 2, and dh in next 2
 			uint8_t targetHeight;
 			uint8_t actualHeight;
@@ -43,11 +43,14 @@ namespace agbot {
 
 			// disallow copy constructor since Tiller interacts with hardware, which makes duplicate instances a bad idea
 			void operator =(Tiller const&) {}
-			Tiller(Tiller const& other) : config(other.config) { }
+			Tiller(Tiller const& other) { }
 		public:
+			// Creates a new tiller object. Until begin() is called, any other member functions are still undefined.
+			Tiller() {}
+
 			// Initializes the tiller, sets up the GPIO pins, and performs any other necessary setup work.
 			// note that setMode() still needs to be called before the tiller can be actually used.
-			Tiller(uint8_t id, Config const& config);
+			void begin(uint8_t id, Config const* config);
 
 			// Releases any resources held by the tiller - currently, this just means resetting the GPIO pins.
 			// This is implemented for completeness' sake, but it should really not be used in practice, as

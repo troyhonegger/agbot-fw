@@ -14,7 +14,7 @@
 #include "Config.hpp"
 
 namespace agbot {
-	Config::Config() {
+	void Config::begin() {
 		for (uint8_t i = 0; i < NUM_SETTINGS; i++) {
 			EEPROM.get(i * SETTING_SIZE, settings[i]);
 		}

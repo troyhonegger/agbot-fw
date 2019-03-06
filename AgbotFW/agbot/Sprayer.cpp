@@ -12,11 +12,11 @@
 #include "Sprayer.hpp"
 
 namespace agbot {
-	
-	Sprayer::Sprayer(uint8_t id, Config const& config) :
-			state(((id & 15) << 3) | static_cast<uint8_t>(SprayerState::Unset)),
-			onTime(millis()), offTime(millis()),
-			config(config) {
+	void Sprayer::begin(uint8_t id, Config const* config) {
+		state = ((id++ & 15) << 3) | static_cast<uint8_t>(SprayerState::Unset);
+		onTime = offTime = millis();
+		*config; // dereference seg faults if null
+		Sprayer::config = config;
 		pinMode(getPin(), OUTPUT);
 		digitalWrite(getPin(), OFF_VOLTAGE);
 	}
@@ -61,7 +61,7 @@ namespace agbot {
 			case SprayerState::ProcessOff:
 			case SprayerState::ProcessOn:
 				isProcessing = true;
-				onTime = millis() + config.get(Setting::ResponseDelay) - config.get(Setting::Precision) / 2;
+				onTime = millis() + config->get(Setting::ResponseDelay) - config->get(Setting::Precision) / 2;
 				break;
 			case SprayerState::ProcessScheduled:
 				isProcessing = true;
@@ -70,7 +70,7 @@ namespace agbot {
 
 		if (isProcessing) {
 			setState(SprayerState::ProcessScheduled);
-			offTime = millis() + config.get(Setting::ResponseDelay) + config.get(Setting::Precision) / 2;
+			offTime = millis() + config->get(Setting::ResponseDelay) + config->get(Setting::Precision) / 2;
 		}
 	}
 	void Sprayer::cancelSpray() {

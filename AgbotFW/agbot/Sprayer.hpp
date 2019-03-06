@@ -31,7 +31,7 @@ namespace agbot {
 
 			unsigned long onTime; // If state is SprayerState::ProcessScheduled, sprayer must be on by this time
 			unsigned long offTime; // If state is SprayerState::ProcessOn, sprayer must be off by this time
-			Config const& config;
+			Config const* config;
 			uint8_t state; // To save space, encodes SprayerState in least significant 3 bits, ID in next 4, and status (on/off) in MSB
 
 			inline void setState(SprayerState state) { Sprayer::state = (Sprayer::state & 0xF8) | static_cast<uint8_t>(state); }
@@ -39,13 +39,17 @@ namespace agbot {
 			void setStatus(bool status);
 			inline uint8_t getPin() const { return getId() + 9; }
 
-			// disallow copy constructor since Sprayer interacts with hardware, which makes duplicate instances a bad idea
+			// disallow copy constructor since Sprayer interacts with hardware, so duplicate instances are a bad idea
 			void operator =(Sprayer const&) {}
-			Sprayer(Sprayer const& other) : config(other.config) { }
+			Sprayer(Sprayer const& other) { }
 		public:
-			// Initializes the sprayer, sets up the GPIO pins, and performs any other necessary setup work.
-			// note that setMode() still needs to be called before the sprayer can be actually used.
-			Sprayer(uint8_t id, Config const& config);
+			// Creates a new sprayer object. Until begin() is called, any other member functions are still undefined.
+			Sprayer() {}
+			
+			// Initializes the GPIO pins, sets the initial states, etc. so the sprayer can begin running.
+			// This should be called from inside setup(). Note that setMode() still needs to be called
+			// before the sprayer can actually be used.
+			void begin(uint8_t id, Config const* config);
 
 			// Releases any resources held by the sprayer - currently, this just means resetting the GPIO pins.
 			// This is implemented for completeness' sake, but it should really not be used in practice, as
