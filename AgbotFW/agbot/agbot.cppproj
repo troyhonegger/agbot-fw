@@ -238,6 +238,12 @@
     <Compile Include="Config.hpp">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="Estop.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="Estop.hpp">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="SerialApi.cpp">
       <SubType>compile</SubType>
     </Compile>
