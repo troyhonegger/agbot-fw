@@ -1,9 +1,7 @@
 /*
  * Config.cpp
- * There are a handful of settings that need to be stored in EEPROM so that they can be configured at runtime and persisted
- * across application instances. This module implements functions for reading and writing those values. The "getter" functions
- * can be called anytime - the settings are buffered into memory so there is no data read overhead. The "setter" functions,
- * however, do have overhead and, in general, should not be called except upon request over the serial port.
+ * Implements the agbot::Config class declared in Config.hpp for storing persistent configuration settings.
+ * See Config.hpp for more info.
  * Created: 11/21/2018 8:24:59 PM
  *  Author: troy.honegger
  */

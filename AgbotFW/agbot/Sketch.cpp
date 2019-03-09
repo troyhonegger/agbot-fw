@@ -4,11 +4,13 @@
 
 #include "Config.hpp"
 #include "Estop.hpp"
+#include "Hitch.hpp"
 #include "Tiller.hpp"
 #include "Sprayer.hpp"
 
 agbot::Config config;
 agbot::Estop estop;
+agbot::Hitch hitch;
 agbot::Tiller tillers[agbot::Tiller::COUNT];
 agbot::Sprayer sprayers[agbot::Sprayer::COUNT];
 agbot::MachineMode currentMode = agbot::MachineMode::Unset;
@@ -16,6 +18,7 @@ agbot::MachineMode currentMode = agbot::MachineMode::Unset;
 void setup() {
 	config.begin();
 	estop.begin();
+	hitch.begin(&config);
 	for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
 		tillers[i].begin(i, &config);
 	}

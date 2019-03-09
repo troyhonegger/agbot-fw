@@ -1,8 +1,7 @@
 /*
  * Sprayer.cpp
- * This module contains a set of functions to be used to interact with the sprayers on the machine. It declares a global array
- * containing all eight sprayers on the machine. It also defines diagnostic operations (to turn sprayers on or off manually)
- * as well as processing operations (to schedule spraying as weeds are encountered).
+ * Implements the agbot::Sprayer class defined in Sprayer.hpp for interacting with the sprayers on the machine.
+ * See Sprayer.hpp for more info.
  * Created: 11/21/2018 8:00:00 PM
  *  Author: troy.honegger
  */

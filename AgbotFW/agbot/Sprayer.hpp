@@ -1,6 +1,21 @@
 /*
  * Sprayer.hpp
- * Encapsulates the data and logic necessary to interact with a sprayer on the multivator.
+ * Encapsulates the data and logic necessary to interact with a sprayer on the multivator in the agbot::Sprayer class.
+ * In particular, this class implements a state machine that allows you to send it either diagnostics (on/off) or
+ * processing (weed/no weed) commands, and in either case, it will coordinate the task scheduling and GPIO necessary
+ * to run the sprayer.
+ * 
+ * The sprayer class breaks from C++ RAII pattern, since needs to be initialized as a global variable, and the initialization
+ * logic for a sprayer depends on the completion of certain hardware setup that occurs in the Arduino library's main() method.
+ * Accordingly, you must call begin() on every sprayer before using it.
+ * 
+ * Usage example:
+ *	agbot::Sprayer sprayer;
+ *	sprayer.begin(0, &config); // requires pre-initialized configuration - see Config.hpp
+ *	sprayer.setMode(agbot::MachineMode::Process);
+ *	sprayer.scheduleSpray();
+ *	sprayer.update(); // call this repeatedly so sprayer can turn on when ready
+ * 
  * Created: 3/4/2019 1:00:05 PM
  *  Author: troy.honegger
  */ 

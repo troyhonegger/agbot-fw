@@ -1,6 +1,25 @@
 /*
  * Tiller.hpp
- * Encapsulates the data and logic necessary to interact with a tiller on the multivator.
+ * Encapsulates the data and logic necessary to interact with a tiller on the multivator in the agbot::Tiller class.
+ * In particular, the class implements a state machine that allows you to send it either diagnostics (raise/lower/stop)
+ * or processing (weed/no weed) commands, and in either case, it will coordinate all the task scheduling, height
+ * sensing, and GPIO necessary to run the tiller.
+ * 
+ * The tiller class breaks from C++ RAII pattern, since needs to be initialized as a global variable, and the initialization
+ * logic for a tiller depends on the completion of certain hardware setup that occurs in the Arduino library's main() method.
+ * Accordingly, you must call begin() on every tiller before using it.
+ * 
+ * It is critically important to realize that tiller operations are scheduled, and not necessarily performed immediately.
+ * When you call ANY tiller function (from scheduleLower() to setHeight() to stop()), the tiller itself does not change
+ * until you call update(). This is the ONLY function that performs GPIO.
+ * 
+ * Usage example:
+ *	agbot::Tiller tiller;
+ *	tiller.begin(0, &config); // requires pre-initialized configuration - see Config.hpp
+ *	tiller.setMode(agbot::MachineMode::Process);
+ *	tiller.scheduleLower();
+ *	tiller.update();
+ * 
  * Created: 3/1/2019 11:12:49 PM
  *  Author: troy.honegger
  */ 

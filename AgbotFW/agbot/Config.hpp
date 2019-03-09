@@ -1,5 +1,14 @@
 /*
- * Config.hpp - declares the data structures and functionality necessary to persist certain configuration settings on the machine.
+ * Config.hpp
+ * Encapsulates the data and logic necessary to store persistent configuration settings in the agbot::Config class.
+ * This class allows you to store and retrieve configuration values from the EEPROM memory.
+ * 
+ * Usage example:
+ *	agbot::Config config; // (most likely as a global variable)
+ *	config.begin();
+ *	uint16_t value = config.get(agbot::Setting::Precision);
+ *	config.set(agbot::Setting::Precision, value);
+ *
  * Created: 3/2/2019 3:26:42 PM
  *  Author: troy.honegger
  */ 
@@ -23,24 +32,27 @@ namespace agbot {
 		TillerRaiseTime = 3,
 		// The amount of time, in milliseconds, for a tiller to lower from 100 to 0.
 		TillerLowerTime = 4,
-		// The amount of "hysteresis" built into the state machine that maintains the tiller height. For example, if set to 5, and the
+		// The amount of variation built into the state machine that maintains the tiller height. For example, if set to 5, and the
 		// tiller's target height is 30, the controller will allow a height anywhere between 25 and 35. This should be between 0 and 100.
 		TillerAccuracy = 5,
 		// The height of the tiller when it is considered "lowered" in the processing state. This should be between 0 and 100.
 		TillerLoweredHeight = 6,
 		// The height of the tiller when it is considered "raised" in the processing state. This should be between 0 and 100.
 		TillerRaisedHeight = 7,
+		// The amount of variation allowed by the state machine that maintains the hitch height. For example, if set to 5, and the hitch
+		// has a target height of 30, the controller will allow a height anywhere between 25 and 35. This should be set between 0 and 100.
+		HitchAccuracy = 8,
 		// The height of the 3-point hitch when it is lowered for processing. This should be between 0 and 100.
-		HitchLoweredHeight = 8,
+		HitchLoweredHeight = 9,
 		// The height of the 3-point hitch when it is raised for transport or at the end of a row. This should be between 0 and 100.
-		HitchRaisedHeight = 9
+		HitchRaisedHeight = 10
 	};
 
 	class Config {
 		private:
-			// Note: if memory becomes an issue we can save 5 bytes here (at some maintainability cost) by packing the 1-byte settings
+			// Note: if memory becomes an issue we can save 6 bytes here (at some maintainability cost) by packing the 1-byte settings
 			// together instead of allocating 2 bytes for everything.
-			uint16_t settings[10];
+			uint16_t settings[12];
 
 			// disallow copy constructor
 			void operator=(Config const&) {}

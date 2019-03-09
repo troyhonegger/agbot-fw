@@ -1,6 +1,7 @@
 /*
  * Estop.cpp
- *
+ * Implements the agbot::Estop class defined in Estop.hpp for triggering the machine's e-stop.
+ * See Estop.hpp for more info.
  * Created: 3/6/2019 3:14:52 PM
  *  Author: troy.honegger
  */ 

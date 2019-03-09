@@ -1,8 +1,7 @@
 /*
  * Tiller.cpp
- * This module contains a set of functions to be used to interact with the tillers on the machine. It declares a global array
- * containing all three tillers on the machine. It also defines diagnostic operations (to raise, lower, and stop tillers manually),
- * as well as processing operations (to schedule tiller operations as weeds are encountered).
+ * Implements the agbot::Tiller class defined in Tiller.hpp for interacting with the tillers on the machine.
+ * See Tiller.hpp for more info.
  * Created: 11/21/2018 8:13:00 PM
  *  Author: troy.honegger
  */
@@ -127,6 +126,11 @@ namespace agbot {
 		updateActualHeight();
 		int8_t newDh = 0;
 		if (targetHeight != STOP) {
+			// TODO: implement some kind of hysteresis - for example, stop the tiller when
+			// |target - initial| < accuracy/2, start it when |target - initial| >= accuracy,
+			// otherwise no change to the magnitude (but perhaps the sign) of DH. Of course if
+			// targetHeight == STOP, newDh = 0 no matter what.
+			// This applies to the Hitch class too
 			if ((targetHeight > actualHeight) && (targetHeight - actualHeight > config->get(Setting::TillerAccuracy))) { newDh = 1; }
 			else if ((targetHeight < actualHeight) && (actualHeight - targetHeight > config->get(Setting::TillerAccuracy))) { newDh = -1; }
 		}
