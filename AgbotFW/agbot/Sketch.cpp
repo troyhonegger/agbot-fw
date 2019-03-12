@@ -40,7 +40,7 @@ bool processResetCommand(char *message) {
 			break;
 		case agbot::MachineMode::Diag:
 			for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
-				sprayers[i].setIsOn(false);
+				sprayers[i].setStatus(agbot::Sprayer::OFF);
 			}
 			for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
 				tillers[i].stop();
@@ -142,7 +142,7 @@ bool processGetStateCommand(char *message) {
 			if (parseNum<uint8_t>(message + 3, &sprayerId, agbot::Sprayer::COUNT - 1) >= 1) {
 				printStartMessage(MSG_LVL_INFORMATION);
 				Serial.print(F("Sprayer ")); Serial.print((int) sprayerId, 10);
-				if (sprayers[sprayerId].isOn()) {
+				if (sprayers[sprayerId].getStatus() == agbot::Sprayer::ON) {
 					Serial.print(F(" ON\n"));
 				}
 				else {
@@ -321,10 +321,16 @@ void loop() {
 	if (serialMessageAvailable()) {
 		processMessage(getSerialMessage());
 	}
-	for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
-		tillers[i].update();
+	
+	estop.update();
+	bool hitchNeedsUpdate = hitch.needsUpdate();
+	if (hitchNeedsUpdate || hitch.getDH()) {
+		for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) { tillers[i].stop(true); }
+		for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) { sprayers[i].stop(true); }
+		if (hitchNeedsUpdate) { hitch.update(); }
 	}
-	for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
-		sprayers[i].update();
+	if (!hitch.getDH()) {
+		for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) { tillers[i].update(); }
+		for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) { sprayers[i].update(); }
 	}
 }

@@ -97,7 +97,7 @@ void tillAndSprayDemoLoop(void) {
 			case '6': // Sprayer diag on
 				if (sprayersInDiagMode) {
 					for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
-						sprayers[i].setIsOn(true);
+						sprayers[i].setStatus(agbot::Sprayer::ON);
 					}
 					Serial.print(F("6. Sprayers on\r\n"));
 				}
@@ -106,7 +106,7 @@ void tillAndSprayDemoLoop(void) {
 			case '7': // Sprayer diag off
 				if (sprayersInDiagMode) {
 					for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
-						sprayers[i].setIsOn(false);
+						sprayers[i].setStatus(agbot::Sprayer::OFF);
 					}
 					Serial.print(F("7. Sprayers off\r\n"));
 				}
@@ -115,7 +115,7 @@ void tillAndSprayDemoLoop(void) {
 			case '8': // Tiller diag raise
 				if (tillersInDiagMode) {
 					for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
-						tillers[i].setHeight(100);
+						tillers[i].setTargetHeight(100);
 					}
 					Serial.print(F("8. Tillers raising\r\n"));
 				}
@@ -124,7 +124,7 @@ void tillAndSprayDemoLoop(void) {
 			case '9': // Tiller diag lower
 				if (tillersInDiagMode) {
 					for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
-						tillers[i].setHeight(0);
+						tillers[i].setTargetHeight(0);
 					}
 					Serial.print(F("9. Tillers lowering\r\n"));
 				}
@@ -134,7 +134,7 @@ void tillAndSprayDemoLoop(void) {
 			case 'A':
 				if (tillersInDiagMode) {
 					for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
-						tillers[i].setHeight(agbot::Tiller::STOP);
+						tillers[i].setTargetHeight(agbot::Tiller::STOP);
 					}
 					Serial.print(F("a. Tillers stopped\r\n"));
 				}
@@ -144,7 +144,7 @@ void tillAndSprayDemoLoop(void) {
 			case 'B':
 				if (tillersInDiagMode) {
 					for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
-						tillers[i].setHeight(50);
+						tillers[i].setTargetHeight(50);
 					}
 					Serial.print(F("b. Tillers set to target 50% height\r\n"));
 				}

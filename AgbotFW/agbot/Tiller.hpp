@@ -35,8 +35,7 @@ namespace agbot {
 		Diag=1,
 		ProcessRaising=2,
 		ProcessLowering=3,
-		ProcessScheduled=4,
-		ProcessStopped=5
+		ProcessScheduled=4
 	};
 
 	class Tiller {
@@ -99,12 +98,14 @@ namespace agbot {
 			// Returns the target height of the tiller (0-100 or Tiller::STOP)
 			inline uint8_t getTargetHeight() const { return targetHeight; }
 			// Sets the tiller to target the specified height. This is valid only in diagnostics mode; in process mode, use scheduleLower()
-			void setHeight(uint8_t);
+			void setTargetHeight(uint8_t);
 
-			// Stops the tiller at its current height. This is always valid, but somewhat polymorphic. In diagnostics mode, it just stops the
-			// tiller as expected. In process mode, it stops the tiller, cancels any scheduled lower, and enters the ProcessStopped state
-			// (i.e. it will continue to ignore scheduleLower() calls until resumeProcessing() is called)
-			void stop();
+			// Instructs the tiller to stop at its current height. This is always valid, but in process mode, the raise/lower timer may
+			// override the stop command and spontaneously start the tiller at any time, even if it was just stopped. To ensure that
+			// the tiller actually stops, you can call stop(true) instead, which, rather than scheduling a stop for the next update(),
+			// actually performs the GPIO work to do it immediately, thus overriding any scheduled operations. Note that even then, the
+			// next time you call update() the stop command can still be overridden.
+			void stop(bool now = false);
 
 			// Signals to the tiller that a weed has been sighted up ahead and the tiller should begin lowering at some point in the future.
 			// The exact time is computed from the configuration settings. This command should be issued for every weed that is sighted,
@@ -113,9 +114,6 @@ namespace agbot {
 			void scheduleLower();
 			// Cancels any scheduled "tiller lower" operation and instructs the tiller to raise immediately. This is only valid in processing mode.
 			void cancelLower();
-			// The tillers should be stopped at the end of a row while the multivator three-point hitch is raised. Once the multivator enters the
-			// next row, calling resume() tells the tiller that it can resume "normal" processing
-			void resume();
 
 			// The only function in Tiller that actually sets voltages on GPIO pins. It is CRITICAL that this be called every iteration of the main
 			// controller loop; other commands (including diagnostics commands, stop commands, etc) only schedule operations to be performed in

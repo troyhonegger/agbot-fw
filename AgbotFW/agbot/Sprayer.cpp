@@ -12,7 +12,7 @@
 
 namespace agbot {
 	void Sprayer::begin(uint8_t id, Config const* config) {
-		state = ((id++ & 15) << 3) | static_cast<uint8_t>(SprayerState::Unset);
+		state = ((id & 7) << 3) | static_cast<uint8_t>(SprayerState::Unset);
 		onTime = offTime = millis();
 		*config; // dereference seg faults if null
 		Sprayer::config = config;
@@ -21,13 +21,13 @@ namespace agbot {
 	}
 
 	Sprayer::~Sprayer() {
-		setStatus(false);
+		writeStatus(OFF);
 		pinMode(getPin(), INPUT);
 	}
 
-	inline void Sprayer::setStatus(bool status) {
-		if (isOn() != status) {
-			if (status) {
+	inline void Sprayer::writeStatus(bool status) {
+		if (getStatus() != status) {
+			if (status == ON) {
 				state |= 0x80;
 				digitalWrite(getPin(), ON_VOLTAGE);
 			}
@@ -37,16 +37,20 @@ namespace agbot {
 			}
 		}
 	}
+	inline void Sprayer::setDesiredStatus(bool status) {
+		if (status == ON) { state |= 0x40; }
+		else { state &= 0xBF; }
+	}
 
 	void Sprayer::setMode(MachineMode mode) {
 		onTime = offTime = millis();
-		setStatus(false);
+		setDesiredStatus(OFF);
 		switch (mode) {
 			case MachineMode::Unset:
 				setState(SprayerState::Unset);
 				break;
 			case MachineMode::Diag:
-				setState(SprayerState::DiagOff);
+				setState(SprayerState::Diag);
 				break;
 			case MachineMode::Process:
 				setState(SprayerState::ProcessOff);
@@ -76,51 +80,34 @@ namespace agbot {
 		if (getState() == SprayerState::ProcessScheduled || getState() == SprayerState::ProcessOn) {
 			onTime = offTime = millis();
 			setState(SprayerState::ProcessOff);
-			setStatus(false);
+			setDesiredStatus(OFF);
 		}
 	}
 
-	void Sprayer::stop() {
-		switch (getState()) {
-			case SprayerState::DiagOn:
-				setIsOn(false);
-				break;
-			case SprayerState::ProcessOn:
-			case SprayerState::ProcessOff:
-			case SprayerState::ProcessScheduled:
-				onTime = offTime = millis();
-				setState(SprayerState::ProcessStopped);
-				setStatus(false);
-				break;
-		}
-	}
-	void Sprayer::resume() {
-		if (getState() == SprayerState::ProcessStopped) {
-			onTime = offTime = millis();
-			setState(SprayerState::ProcessOff);
-			setStatus(false); // status should already be false, but no harm checking
-		}
+	void Sprayer::stop(bool now) {
+		setDesiredStatus(OFF);
+		if (now) { writeStatus(OFF); }
 	}
 
-	void Sprayer::setIsOn(bool on) {
-		if (on && getState() == SprayerState::DiagOff) {
-			setStatus(on);
-			setState(SprayerState::DiagOn);
-		}
-		else if (!on && getState() == SprayerState::DiagOn) {
-			setStatus(on);
-			setState(SprayerState::DiagOff);
+	void Sprayer::setStatus(bool status) {
+		if (getState() == SprayerState::Diag) {
+			setDesiredStatus(status);
 		}
 	}
 
 	void Sprayer::update() {
 		if (getState() == SprayerState::ProcessScheduled && isElapsed(onTime)) {
 			setState(SprayerState::ProcessOn);
-			setStatus(true);
+			setDesiredStatus(ON);
 		}
 		else if (getState() == SprayerState::ProcessOn && isElapsed(offTime)) {
 			setState(SprayerState::ProcessOff);
-			setStatus(false);
+			setDesiredStatus(OFF);
+		}
+
+		// reconcile "desired state" and actual, physical state
+		if (getDesiredStatus() != getStatus()) {
+			writeStatus(!getStatus());
 		}
 	}
 }

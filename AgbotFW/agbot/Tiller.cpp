@@ -16,6 +16,7 @@ namespace agbot {
 	void Tiller::begin(uint8_t id, Config const* config) {
 		state = ((id & 3) << 4) | static_cast<uint8_t>(TillerState::Unset);
 		raiseTime = lowerTime = millis();
+		*config; // dereference seg faults if null
 		targetHeight = STOP;
 		actualHeight = MAX_HEIGHT;
 		Tiller::config = config;
@@ -55,24 +56,18 @@ namespace agbot {
 		}
 	}
 
-	void Tiller::setHeight(uint8_t height) {
+	void Tiller::setTargetHeight(uint8_t height) {
 		if (getState() == TillerState::Diag) {
 			targetHeight = height;
 		}
 	}
 	
-	void Tiller::stop() {
-		switch (getState()) {
-			case TillerState::Diag:
-				targetHeight = STOP;
-				break;
-			case TillerState::ProcessLowering:
-			case TillerState::ProcessRaising:
-			case TillerState::ProcessScheduled:
-				raiseTime = lowerTime = millis();
-				setState(TillerState::ProcessStopped);
-				targetHeight = STOP;
-				break;
+	void Tiller::stop(bool now) {
+		targetHeight = STOP;
+		if (now && getDH()) {
+			setDH(0);
+			digitalWrite(getRaisePin(), OFF_VOLTAGE);
+			digitalWrite(getLowerPin(), OFF_VOLTAGE);
 		}
 	}
 
@@ -99,14 +94,6 @@ namespace agbot {
 
 	void Tiller::cancelLower() {
 		if (getState() == TillerState::ProcessScheduled || getState() == TillerState::ProcessRaising) {
-			raiseTime = lowerTime = millis();
-			setState(TillerState::ProcessRaising);
-			targetHeight = config->get(Setting::TillerRaisedHeight);
-		}
-	}
-
-	void Tiller::resume() {
-		if (getState() == TillerState::ProcessStopped) {
 			raiseTime = lowerTime = millis();
 			setState(TillerState::ProcessRaising);
 			targetHeight = config->get(Setting::TillerRaisedHeight);
