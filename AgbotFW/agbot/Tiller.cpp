@@ -127,8 +127,8 @@ namespace agbot {
 		updateActualHeight();
 		int8_t newDh = 0;
 		if (targetHeight != STOP) {
-			if (targetHeight - actualHeight > config->get(Setting::TillerAccuracy)) { newDh = 1; }
-			else if (targetHeight - actualHeight < -config->get(Setting::TillerAccuracy)) { newDh = -1; }
+			if ((targetHeight > actualHeight) && (targetHeight - actualHeight > config->get(Setting::TillerAccuracy))) { newDh = 1; }
+			else if ((targetHeight < actualHeight) && (actualHeight - targetHeight > config->get(Setting::TillerAccuracy))) { newDh = -1; }
 		}
 
 		if (newDh != getDH()) {

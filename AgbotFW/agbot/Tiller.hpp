@@ -26,8 +26,8 @@ namespace agbot {
 			static const uint8_t MAX_HEIGHT = 100;
 			static const uint8_t STOP = 255;
 		private:
-			static const uint8_t ON_VOLTAGE = HIGH;
-			static const uint8_t OFF_VOLTAGE = LOW;
+			static const uint8_t ON_VOLTAGE = LOW; // TODO: this may not be right
+			static const uint8_t OFF_VOLTAGE = HIGH; // TODO: this may not be right
 			unsigned long lowerTime; // If state is TillerState::ProcessScheuled, tiller must begin lowering by this time
 			unsigned long raiseTime; // If state is TillerState::ProcessLowering, tiller must begin raising by this time
 			Config const* config;

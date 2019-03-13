@@ -24,7 +24,7 @@ namespace agbot {
 
 	class Sprayer {
 		public:
-			static const uint8_t COUNT = 7;
+			static const uint8_t COUNT = 8;
 		private:
 			static const uint8_t ON_VOLTAGE = LOW;
 			static const uint8_t OFF_VOLTAGE = HIGH;
