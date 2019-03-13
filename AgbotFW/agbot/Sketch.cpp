@@ -15,6 +15,8 @@ agbot::Tiller tillers[agbot::Tiller::COUNT];
 agbot::Sprayer sprayers[agbot::Sprayer::COUNT];
 agbot::MachineMode currentMode = agbot::MachineMode::Unset;
 
+#ifndef DEMO_MODE
+
 void setup() {
 	config.begin();
 	estop.begin();
@@ -27,6 +29,8 @@ void setup() {
 	}
 	initSerialApi();
 }
+
+#endif // DEMO_MODE
 
 bool processResetCommand(char *message) {
 	switch (currentMode) {
@@ -316,6 +320,8 @@ void processMessage(char *message) {
 		return;
 }
 
+#ifndef DEMO_MODE
+
 void loop() {
 	readSerial();
 	if (serialMessageAvailable()) {
@@ -334,3 +340,5 @@ void loop() {
 		for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) { sprayers[i].update(); }
 	}
 }
+
+#endif // DEMO_MODE

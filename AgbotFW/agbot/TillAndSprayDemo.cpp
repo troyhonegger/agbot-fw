@@ -9,13 +9,16 @@
 
 #include <Arduino.h>
 
+#include "Common.hpp"
 #include "Config.hpp"
 #include "Sprayer.hpp"
 #include "Tiller.hpp"
 
+#ifdef DEMO_MODE
+
 extern agbot::Config config;
-extern agbot::Tiller* tillers;
-extern agbot::Sprayer* sprayers;
+extern agbot::Tiller tillers[];
+extern agbot::Sprayer sprayers[];
 
 static bool sprayersInDiagMode = false;
 static bool sprayersInProcessMode = false;
@@ -40,7 +43,32 @@ void displayMenu(void) {
 				   "\th. Display menu\r\n\r\n"));
 }
 
-void tillAndSprayDemoLoop(void) {
+void setup(void) {
+	config.begin();
+	config.set(agbot::Setting::Precision, 500);
+	config.set(agbot::Setting::ResponseDelay, 1500);
+	config.set(agbot::Setting::TillerLowerTime, 500);
+	config.set(agbot::Setting::TillerRaiseTime, 0);
+	config.set(agbot::Setting::TillerAccuracy, 5);
+	config.set(agbot::Setting::TillerRaisedHeight, 100);
+	config.set(agbot::Setting::TillerLoweredHeight, 0);
+	config.set(agbot::Setting::KeepAliveTimeout, 65535);
+	config.set(agbot::Setting::HitchAccuracy, 5);
+	config.set(agbot::Setting::HitchRaisedHeight, 100);
+	config.set(agbot::Setting::HitchLoweredHeight, 0);
+	//estop.begin();
+	//hitch.begin(&config);
+	for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
+		tillers[i].begin(i, &config);
+	}
+	for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
+		sprayers[i].begin(i, &config);
+	}
+	Serial.begin(9600);
+	displayMenu();
+}
+
+void loop(void) {
 	if (Serial.available()) {
 		switch (Serial.read()) {
 			case -1: // No character available
@@ -59,6 +87,7 @@ void tillAndSprayDemoLoop(void) {
 				for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
 					tillers[i].setMode(agbot::MachineMode::Diag);
 				}
+				Serial.print(F("1. Tillers are now in diag mode\r\n"));
 				break;
 			case '2': // Sprayers enter process mode
 				sprayersInDiagMode = false;
@@ -170,3 +199,5 @@ void tillAndSprayDemoLoop(void) {
 		sprayers[i].update();
 	}
 }
+
+#endif // DEMO_MODE

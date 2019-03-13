@@ -8,6 +8,9 @@
 
 #include <Arduino.h>
 
+// Comment this line to run the "production" code; un-comment to run "TillAndSprayDemo.cpp"
+//#define DEMO_MODE
+
 namespace agbot {
 	enum class MachineMode : uint8_t {
 		Unset = 0, Process = 1, Diag = 2
