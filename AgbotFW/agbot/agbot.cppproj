@@ -244,6 +244,12 @@
     <Compile Include="Estop.hpp">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="EthernetApi.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="EthernetApi.hpp">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="Hitch.cpp">
       <SubType>compile</SubType>
     </Compile>

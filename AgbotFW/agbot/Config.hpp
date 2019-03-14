@@ -52,7 +52,7 @@ namespace agbot {
 		private:
 			// Note: if memory becomes an issue we can save 6 bytes here (at some maintainability cost) by packing the 1-byte settings
 			// together instead of allocating 2 bytes for everything.
-			uint16_t settings[12];
+			uint16_t settings[11];
 
 			// disallow copy constructor
 			void operator=(Config const&) {}

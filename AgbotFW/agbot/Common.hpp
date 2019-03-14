@@ -11,6 +11,9 @@
 // Comment this line to run the "production" code; un-comment to run "TillAndSprayDemo.cpp"
 //#define DEMO_MODE
 
+// type alias for a constant string stored in the Arduino's relatively large flash memory (as opposed to the relatively small RAM)
+typedef const char constStr_t[] __attribute__((__progmem__));
+
 namespace agbot {
 	enum class MachineMode : uint8_t {
 		Unset = 0, Process = 1, Diag = 2
