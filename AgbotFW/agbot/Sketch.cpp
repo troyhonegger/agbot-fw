@@ -11,8 +11,6 @@
 
 using namespace agbot;
 
-static const char KEEPALIVE_RESPONSE[] PROGMEM = "KeepAlive Acknowledge";
-static const char ESTOP_ENGAGED_RESPONSE[] PROGMEM = "Estop Engaged";
 static const char ERR_NOT_IN_PROCESS_MODE[] PROGMEM = "ERROR: Command invalid - not in process mode";
 static const char ERR_NOT_IN_DIAG_MODE[] PROGMEM = "ERROR: Command invalid - not in diag mode";
 
@@ -46,19 +44,13 @@ void setup() {
 	lastKeepAliveTime = millis();
 }
 
-bool messageProcessor(EthernetApi::Command const& command, char* messageText) {
+void messageProcessor(EthernetApi::Command const& command, char* response) {
+	lastKeepAliveTime = millis();
 	switch (command.type) {
-		case EthernetApi::CommandType::Estop: {
-			estop.engage();
-			strncpy_P(messageText, ESTOP_ENGAGED_RESPONSE, EthernetApi::MAX_MESSAGE_SIZE);
-			return true;
-		} break;
-		case EthernetApi::CommandType::KeepAlive: {
-			strncpy_P(messageText, KEEPALIVE_RESPONSE, EthernetApi::MAX_MESSAGE_SIZE);
-			lastKeepAliveTime = millis();
-			return true;
-		} break;
+		case EthernetApi::CommandType::Estop: { estop.engage(); } break;
+		case EthernetApi::CommandType::KeepAlive: { /* Do nothing */ } break;
 		case EthernetApi::CommandType::SetMode: {
+			// we don't have to validate the mode because the parser only knows of Processing and Diagnostics modes
 			currentMode = command.data.machineMode;
 			for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
 				sprayers[i].setMode(currentMode);
@@ -69,8 +61,7 @@ bool messageProcessor(EthernetApi::Command const& command, char* messageText) {
 		} break;
 		case EthernetApi::CommandType::Process: {
 			if (currentMode != MachineMode::Process) {
-				strncpy_P(messageText, ERR_NOT_IN_PROCESS_MODE, EthernetApi::MAX_MESSAGE_SIZE);
-				return true;
+				strncpy_P(response, ERR_NOT_IN_PROCESS_MODE, EthernetApi::MAX_MESSAGE_SIZE);
 			}
 			else {
 				// Data corresponding to tillers is in least-significant nibble of each byte
@@ -79,7 +70,7 @@ bool messageProcessor(EthernetApi::Command const& command, char* messageText) {
 				}
 				// line up the weed/corn data from the sprayers into a bitfield where each bit lines
 				// up with the corresponding sprayer. Then check each bit and schedule as needed.
-				uint8_t sprayerData = (command.data.process[0] >> 4) | command.data.process[2];
+				uint8_t sprayerData = (command.data.process[0] >> 4) | command.data.process[1];
 				for (int i = 0; i < 8; i++) {
 					if (sprayerData & (1 << i)) { sprayers[i].scheduleSpray(); }
 				}
@@ -90,44 +81,40 @@ bool messageProcessor(EthernetApi::Command const& command, char* messageText) {
 			uint16_t value = command.data.config.value;
 			if (value > 100 && setting != Setting::Precision && setting != Setting::ResponseDelay && setting != Setting::KeepAliveTimeout
 					&& setting != Setting::TillerLowerTime && setting != Setting::TillerRaiseTime) {
-				snprintf_P(messageText, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, 100);
-				return true;
+				snprintf_P(response, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, 100);
 			}
-			else {
-				config.set(setting, value);
-			}
+			else { config.set(setting, value); }
 		} break;
 		case EthernetApi::CommandType::GetState: {
 			switch (command.data.query.type) {
 				case EthernetApi::QueryType::Mode:
-					strncpy_P(messageText, currentMode == MachineMode::Process ? MODE_PROCESS : currentMode == MachineMode::Diag ? MODE_DIAG : MODE_UNSET,
+					strncpy_P(response, currentMode == MachineMode::Process ? MODE_PROCESS : currentMode == MachineMode::Diag ? MODE_DIAG : MODE_UNSET,
 						EthernetApi::MAX_MESSAGE_SIZE);
 					break;
 				case EthernetApi::QueryType::Configuration:
-					snprintf_P(messageText, EthernetApi::MAX_MESSAGE_SIZE, "%ud", config.get(static_cast<Setting>(command.data.query.value)));
+					snprintf_P(response, EthernetApi::MAX_MESSAGE_SIZE, "%ud", config.get(static_cast<Setting>(command.data.query.value)));
 					break;
 				case EthernetApi::QueryType::Tiller:
 					if (command.data.query.value >= Tiller::COUNT) {
-						snprintf(messageText, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Tiller::COUNT - 1);
+						snprintf(response, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Tiller::COUNT - 1);
 					}
-					else { tillers[command.data.query.value].serialize(messageText, EthernetApi::MAX_MESSAGE_SIZE); }
+					else { tillers[command.data.query.value].serialize(response, EthernetApi::MAX_MESSAGE_SIZE); }
 					break;
 				case EthernetApi::QueryType::Sprayer:
 					if (command.data.query.value >= Sprayer::COUNT) {
-						snprintf(messageText, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Sprayer::COUNT - 1);
+						snprintf(response, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Sprayer::COUNT - 1);
 					}
-					else { sprayers[command.data.query.value].serialize(messageText, EthernetApi::MAX_MESSAGE_SIZE); }
+					else { sprayers[command.data.query.value].serialize(response, EthernetApi::MAX_MESSAGE_SIZE); }
 					break;
 				case EthernetApi::QueryType::Hitch:
-					hitch.serialize(messageText, EthernetApi::MAX_MESSAGE_SIZE);
+					hitch.serialize(response, EthernetApi::MAX_MESSAGE_SIZE);
 					break;
 			}
-			return true;
 		} break;
 		case EthernetApi::CommandType::DiagSet: {
 			if (currentMode != MachineMode::Diag) {
-				strncpy_P(messageText, ERR_NOT_IN_DIAG_MODE, EthernetApi::MAX_MESSAGE_SIZE);
-				return true;
+				strncpy_P(response, ERR_NOT_IN_DIAG_MODE, EthernetApi::MAX_MESSAGE_SIZE);
+				break;
 			}
 			switch (command.data.diag.type) {
 				case EthernetApi::PeripheralType::Sprayer: {
@@ -140,8 +127,7 @@ bool messageProcessor(EthernetApi::Command const& command, char* messageText) {
 				} break;
 				case EthernetApi::PeripheralType::Tiller: {
 					if (command.data.diag.value > Tiller::MAX_HEIGHT && command.data.diag.value != Tiller::STOP) {
-						snprintf_P(messageText, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Tiller::MAX_HEIGHT);
-						return true;
+						snprintf_P(response, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Tiller::MAX_HEIGHT);
 					}
 					else {
 						for (uint8_t i = 0; i < Tiller::COUNT; i++) {
@@ -153,35 +139,25 @@ bool messageProcessor(EthernetApi::Command const& command, char* messageText) {
 				} break;
 				case EthernetApi::PeripheralType::Hitch: {
 					if (command.data.diag.value > Hitch::MAX_HEIGHT && command.data.diag.value != Hitch::STOP) {
-						snprintf_P(messageText, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Hitch::MAX_HEIGHT);
-						return true;
+						snprintf_P(response, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Hitch::MAX_HEIGHT);
 					}
-					else {
-						hitch.setTargetHeight(command.data.diag.value);
-					}
+					else { hitch.setTargetHeight(command.data.diag.value); }
 				} break;
 			}
 		} break;
 		case EthernetApi::CommandType::ProcessLowerHitch: {
 			if (currentMode != MachineMode::Process) {
-				strncpy_P(messageText, ERR_NOT_IN_PROCESS_MODE, EthernetApi::MAX_MESSAGE_SIZE);
-				return true;
+				strncpy_P(response, ERR_NOT_IN_PROCESS_MODE, EthernetApi::MAX_MESSAGE_SIZE);
 			}
-			else {
-				hitch.lower();
-			}
+			else { hitch.lower(); }
 		} break;
 		case EthernetApi::CommandType::ProcessRaiseHitch: {
 			if (currentMode != MachineMode::Process) {
-				strncpy_P(messageText, ERR_NOT_IN_PROCESS_MODE, EthernetApi::MAX_MESSAGE_SIZE);
-				return true;
+				strncpy_P(response, ERR_NOT_IN_PROCESS_MODE, EthernetApi::MAX_MESSAGE_SIZE);
 			}
-			else {
-				hitch.raise();
-			}
+			else { hitch.raise(); }
 		} break;
 	}
-	return false;
 }
 
 void loop() {

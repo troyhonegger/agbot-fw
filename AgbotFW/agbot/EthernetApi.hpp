@@ -64,7 +64,7 @@ namespace EthernetApi {
 				uint8_t id;
 				uint8_t value;
 			} diag;
-			// Process (bytes stored in little-endian form)
+			// Process (bytes stored in big-endian form to better match the string representation, most significant nibble ignored)
 			uint8_t process[3];
 		} data;
 	};
@@ -80,12 +80,12 @@ namespace EthernetApi {
 		ValidMessage_Response = 3
 	};
 
-	// Checks the Ethernet port for incoming messages. If it finds any, it parses it and calls processor().
-	// The first argument to processor() is the parsed command. The second is the literal text of the command.
-	// If processor wants to respond to the message, it should return true and edit the message text to
-	// contain the response (being sure to keep it within the MAX_MESSAGE_SIZE buffer limit)). Otherwise,
-	// it should return false. read() will then check the return value of processor(), send
-	// the response if necessary, and return a ReadStatus describing the extent it did.
-	ReadStatus read(bool (*processor)(agbot::EthernetApi::Command const&, char*));
+	// Checks the Ethernet port for incoming messages. If it finds one, it parses it and calls processor().
+	// The first argument to processor() is the parsed command. The second is the place to put the response
+	// string. If the processor wants to respond to the message, it should copy it into the response buffer
+	// (being sure to keep it within the MAX_MESSAGE_SIZE buffer limit). Otherwise, it should ignore the
+	// response pointer, and the Ethernet API will take care of responding with "ACK". read() will then
+	// take care of sending the response and return a ReadStatus describing what it did.
+	ReadStatus read(void (*processor)(agbot::EthernetApi::Command const&, char*));
 }
 }

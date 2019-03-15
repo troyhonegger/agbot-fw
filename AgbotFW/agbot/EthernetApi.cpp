@@ -73,6 +73,7 @@ MAKE_CONST_STR(Hitch);
 MAKE_CONST_STR_WITH_LEN(ON);
 MAKE_CONST_STR_WITH_LEN(OFF);
 MAKE_CONST_STR_WITH_LEN(STOP);
+MAKE_CONST_STR(ACK);
 
 static const char ParseError_UnrecognizedCommand[] PROGMEM = "PARSE ERROR: Command did not match any of the expected formats.";
 static const char ParseError_InvalidMachineMode[] PROGMEM = "PARSE ERROR: Invalid machine mode: ";
@@ -98,22 +99,24 @@ namespace EthernetApi {
 	static bool parseSetting(Command&, char*);
 	static bool parseMessage(Command&, char*);
 
-	ReadStatus read(bool (*processor)(agbot::EthernetApi::Command const&, char*)) {
+	ReadStatus read(void (*processor)(agbot::EthernetApi::Command const&, char*)) {
 		EthernetClient client = server.available();
 		if (!client) { return ReadStatus::NoMessage; }
 		client.read((uint8_t*) messageBuffer, MAX_MESSAGE_SIZE - 1); // don't forget to leave the last byte for a null terminator!
 
 		Command command;
-		ReadStatus status = ReadStatus::ValidMessage_NoResponse;
+		ReadStatus status;
 
 		if (parseMessage(command, messageBuffer)) {
-			// process the message and print the response, if requested
-			if (processor(command, messageBuffer)) {
-				client.print(messageBuffer);
-				client.flush();
-				status = ReadStatus::ValidMessage_Response;
+			messageBuffer[0] = '\0';
+
+			processor(command, messageBuffer);
+
+			if (messageBuffer[0]) { status = ReadStatus::ValidMessage_Response; }
+			else {
+				strcpy_P(messageBuffer, ACK_STR);
+				status = ReadStatus::ValidMessage_NoResponse;
 			}
-			else { status = ReadStatus::ValidMessage_NoResponse; }
 		}
 		else {
 			// the error message has been loaded into the buffer
@@ -121,6 +124,9 @@ namespace EthernetApi {
 			client.flush();
 			status = ReadStatus::InvalidMessage;
 		}
+		client.print(messageBuffer);
+		client.flush();
+
 		// clear the message buffer for next time
 		for (int i = 0; i < MAX_MESSAGE_SIZE; i++) { messageBuffer[i] = '\0'; }
 		return status;
@@ -192,9 +198,9 @@ namespace EthernetApi {
 		}
 		else if (sscanf_P(message, Process_FMT_STR, &longData) == 1) {
 			command.type = CommandType::Process;
-			command.data.process[0] = static_cast<uint8_t>(longData & 0xFF);
-			command.data.process[1] = static_cast<uint8_t>((longData >> 8) & 0xFF);
-			command.data.process[2] = static_cast<uint8_t>((longData >> 16) & 0xFF);
+			command.data.process[0] = static_cast<uint8_t>((longData & 0x000F0000) >> 16);
+			command.data.process[1] = static_cast<uint8_t>((longData & 0x0000FF00) >> 8);
+			command.data.process[2] = static_cast<uint8_t>((longData & 0x000000FF) >> 0);
 			return true;
 		}
 		else if (sscanf_P(message, SetMode_FMT_STR, data) == 1) {
