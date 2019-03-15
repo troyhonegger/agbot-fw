@@ -46,13 +46,12 @@ namespace EthernetApi {
 			// Estop, KeepAlive, ProcessRaiseHitch, ProcessLowerHitch: no extra data necessary
 			// SetMode: MachineMode
 			MachineMode machineMode;
-			// GetState: type, ID
+			// GetState: type, value
 			struct {
 				QueryType type;
-				union {
-					uint8_t id;
-					Setting setting;
-				} value;
+				// if type == QueryType::Configuration, value is static casted from Setting.
+				// if type == QueryType::Tiller or QueryType::Sprayer, value is the ID of the tiller/sprayer
+				uint8_t value;
 			} query;
 			// SetConfig: setting, value
 			struct {
@@ -87,6 +86,6 @@ namespace EthernetApi {
 	// contain the response (being sure to keep it within the MAX_MESSAGE_SIZE buffer limit)). Otherwise,
 	// it should return false. read() will then check the return value of processor(), send
 	// the response if necessary, and return a ReadStatus describing the extent it did.
-	ReadStatus read(bool (*processor)(agbot::EthernetApi::Command&, char*));
+	ReadStatus read(bool (*processor)(agbot::EthernetApi::Command const&, char*));
 }
 }

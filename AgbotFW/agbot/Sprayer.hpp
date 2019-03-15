@@ -123,5 +123,9 @@ namespace agbot {
 			// Checks for and performs any scheduled spray operations. It is CRITICAL that this be called every iteration of the controller
 			// loop, as scheduleSpray() does not actually interact with the GPIO pins; it only schedules work to be done in update()
 			void update();
+
+			// Writes the information pertaining to this sprayer to the given string. Writes at most n characters, and returns the number of
+			// characters that written (or that would have been written, if the size exceeds n)
+			size_t serialize(char* str, size_t n) const;
 	};
 }

@@ -110,4 +110,18 @@ namespace agbot {
 			writeStatus(!getStatus());
 		}
 	}
+
+	size_t Sprayer::serialize(char* str, size_t n) const {
+		char buf[4] = "ON\0";
+		if (getStatus() == OFF) { buf[1] = 'F'; buf[2] = 'F'; } // OFF
+		SprayerState state = getState();
+		if (state != SprayerState::ProcessOn && state != SprayerState::ProcessScheduled) {
+			return snprintf(str, n, buf);
+		}
+		else {
+			int32_t until = state == SprayerState::ProcessOn ? offTime - millis() : onTime - millis();
+			return snprintf(str, n, "%s %ld", buf, until);
+		}
+		return 0;
+	}
 }

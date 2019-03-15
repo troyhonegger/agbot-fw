@@ -21,12 +21,12 @@
 // Preprocessor magic, to automate defining the string constants. The downside of this approach is that when the API
 // terminology changes, so do the variable names. The upside is that the variable names always match the API terminology ;)
 // MAKE_CONST_STR_WITH_LEN(Text); expands to
-//	static constStr_t Text_STR = "Text";
+//	static const char Text_STR[] PROGMEM = "Text";
 // MAKE_CONST_STR_WITH_LEN(Text); expands to
-//	static constStr_t Text_STR = "Text"; static uint8_t Text_STR_LEN = strlen_P(Text_STR);
+//	static const char Text_STR[] PROGMEM = "Text"; static uint8_t Text_STR_LEN = strlen_P(Text_STR);
 // The only requirement is that the argument must be a valid C/C++ variable name
-#define MAKE_CONST_STR(token) static constStr_t token##_STR = #token
-#define MAKE_CONST_STR_WITH_LEN(token) static constStr_t token##_STR = #token; static const uint8_t token##_STR_LEN = strlen_P(token##_STR)
+#define MAKE_CONST_STR(token) static const char token##_STR[] PROGMEM = #token
+#define MAKE_CONST_STR_WITH_LEN(token) static const char token##_STR[] PROGMEM = #token; static const uint8_t token##_STR_LEN = strlen_P(token##_STR)
 
 // Since the API only speaks when spoken to, we can get away with one message buffer
 // for both incoming and outgoing messages. Messages are read into here and parsed;
@@ -35,23 +35,23 @@ static char messageBuffer[agbot::EthernetApi::MAX_MESSAGE_SIZE] = { 0 };
 static EthernetServer server(8010); // use port 8010
 
 // Constants used by message parsing code
-static constStr_t SetMode_FMT_STR = "SetMode %10s";
-static constStr_t GetState_FMT_STR = "GetState %13[^[ \t\f\r\n\v]%n";
-static constStr_t GetState_Configuration_FMT_STR = "GetState Configuration[%19s]";
-static constStr_t GetState_Sprayer_FMT_STR = "GetState Sprayer[%1hhx]";
-static constStr_t GetState_Tiller_FMT_STR = "GetState Tiller[%1hhx]";
-static constStr_t SetConfig_FMT_STR = "SetConfig %19[^=]=%ud";
-static constStr_t DiagSet_FMT_STR = "DiagSet %11[^=]=%7s";
-static constStr_t DiagSet_Tiller_FMT_STR = "DiagSet Tiller[%1hhx]=";
-static constStr_t DiagSet_Sprayer_FMT_STR = "DiagSet Sprayer[%2hhx]=";
-static constStr_t Process_FMT_STR = "Process #%lux";
-static constStr_t ParseByte_FMT_STR = "%3hhud";
+static const char SetMode_FMT_STR[] PROGMEM = "SetMode %10s";
+static const char GetState_FMT_STR[] PROGMEM = "GetState %13[^[ \t\f\r\n\v]%n";
+static const char GetState_Configuration_FMT_STR[] PROGMEM = "GetState Configuration[%19s]";
+static const char GetState_Sprayer_FMT_STR[] PROGMEM = "GetState Sprayer[%1hhx]";
+static const char GetState_Tiller_FMT_STR[] PROGMEM = "GetState Tiller[%1hhx]";
+static const char SetConfig_FMT_STR[] PROGMEM = "SetConfig %19[^=]=%ud";
+static const char DiagSet_FMT_STR[] PROGMEM = "DiagSet %11[^=]=%7s";
+static const char DiagSet_Tiller_FMT_STR[] PROGMEM = "DiagSet Tiller[%1hhx]=";
+static const char DiagSet_Sprayer_FMT_STR[] PROGMEM = "DiagSet Sprayer[%2hhx]=";
+static const char Process_FMT_STR[] PROGMEM = "Process #%lux";
+static const char ParseByte_FMT_STR[] PROGMEM = "%3hhud";
 
 MAKE_CONST_STR_WITH_LEN(Estop);
 MAKE_CONST_STR_WITH_LEN(KeepAlive);
 MAKE_CONST_STR_WITH_LEN(ProcessRaiseHitch);
 MAKE_CONST_STR_WITH_LEN(ProcessLowerHitch);
-static constStr_t GetState_Hitch_STR = "GetState Hitch";
+static const char GetState_Hitch_STR[] PROGMEM = "GetState Hitch";
 static uint8_t GetState_Hitch_STR_LEN = strlen_P(GetState_Hitch_STR);
 
 MAKE_CONST_STR(Processing);
@@ -74,14 +74,14 @@ MAKE_CONST_STR_WITH_LEN(ON);
 MAKE_CONST_STR_WITH_LEN(OFF);
 MAKE_CONST_STR_WITH_LEN(STOP);
 
-static constStr_t ParseError_UnrecognizedCommand = "PARSE ERROR: Command did not match any of the expected formats.";
-static constStr_t ParseError_InvalidMachineMode = "PARSE ERROR: Invalid machine mode: ";
-static constStr_t ParseError_UnrecognizedSetting = "PARSE ERROR: Invalid config setting: ";
-static constStr_t ParseError_UnrecognizedQueryType = "PARSE ERROR: Invalid query type: ";
-static constStr_t ParseError_UnrecognizedDiagCommand = "PARSE ERROR: Invalid diag command: Should look like 'DiagSet Sprayer[##]/Tiller[#]/Hitch={value}'";
-static constStr_t ParseError_TillerDiag = "PARSE ERROR: Tiller value must be 'STOP' or an integer";
-static constStr_t ParseError_SprayerDiag = "PARSE ERROR: Sprayer value must be 'ON' or 'OFF'";
-static constStr_t ParseError_HitchDiag = "PARSE ERROR: Hitch value must be 'STOP' or an integer";
+static const char ParseError_UnrecognizedCommand[] PROGMEM = "PARSE ERROR: Command did not match any of the expected formats.";
+static const char ParseError_InvalidMachineMode[] PROGMEM = "PARSE ERROR: Invalid machine mode: ";
+static const char ParseError_UnrecognizedSetting[] PROGMEM = "PARSE ERROR: Invalid config setting: ";
+static const char ParseError_UnrecognizedQueryType[] PROGMEM = "PARSE ERROR: Invalid query type: ";
+static const char ParseError_UnrecognizedDiagCommand[] PROGMEM = "PARSE ERROR: Invalid diag command: Should look like 'DiagSet Sprayer[##]/Tiller[#]/Hitch={value}'";
+static const char ParseError_TillerDiag[] PROGMEM = "PARSE ERROR: Tiller value must be 'STOP' or an integer";
+static const char ParseError_SprayerDiag[] PROGMEM = "PARSE ERROR: Sprayer value must be 'ON' or 'OFF'";
+static const char ParseError_HitchDiag[] PROGMEM = "PARSE ERROR: Hitch value must be 'STOP' or an integer";
 
 namespace agbot{
 namespace EthernetApi {
@@ -98,7 +98,7 @@ namespace EthernetApi {
 	static bool parseSetting(Command&, char*);
 	static bool parseMessage(Command&, char*);
 
-	ReadStatus read(bool (*processor)(agbot::EthernetApi::Command&, char*)) {
+	ReadStatus read(bool (*processor)(agbot::EthernetApi::Command const&, char*)) {
 		EthernetClient client = server.available();
 		if (!client) { return ReadStatus::NoMessage; }
 		client.read((uint8_t*) messageBuffer, MAX_MESSAGE_SIZE - 1); // don't forget to leave the last byte for a null terminator!
@@ -190,6 +190,13 @@ namespace EthernetApi {
 			command.type = CommandType::KeepAlive;
 			return true;
 		}
+		else if (sscanf_P(message, Process_FMT_STR, &longData) == 1) {
+			command.type = CommandType::Process;
+			command.data.process[0] = static_cast<uint8_t>(longData & 0xFF);
+			command.data.process[1] = static_cast<uint8_t>((longData >> 8) & 0xFF);
+			command.data.process[2] = static_cast<uint8_t>((longData >> 16) & 0xFF);
+			return true;
+		}
 		else if (sscanf_P(message, SetMode_FMT_STR, data) == 1) {
 			command.type = CommandType::SetMode;
 			if (!strcmp_P(data, Processing_STR)) {
@@ -210,7 +217,11 @@ namespace EthernetApi {
 			command.type = CommandType::GetState;
 			if (sscanf_P(message, GetState_Configuration_FMT_STR, data) == 1) {
 				command.data.query.type = QueryType::Configuration;
-				if (parseSetting(command.data.query.value.setting, data)) { return true; }
+				Setting setting;
+				if (parseSetting(setting, data)) {
+					command.data.query.value = static_cast<uint8_t>(setting);
+					return true;
+				}
 				else {
 					strcpy_P(messageBuffer, ParseError_UnrecognizedSetting);
 					strcat(messageBuffer, data);
@@ -219,12 +230,12 @@ namespace EthernetApi {
 			}
 			else if (sscanf_P(message, GetState_Tiller_FMT_STR, &byteData) == 1) {
 				command.data.query.type = QueryType::Tiller;
-				command.data.query.value.id = byteData;
+				command.data.query.value = byteData;
 				return true;
 			}
 			else if (sscanf_P(message, GetState_Sprayer_FMT_STR, &byteData) == 1) {
 				command.data.query.type = QueryType::Sprayer;
-				command.data.query.value.id = byteData;
+				command.data.query.value = byteData;
 				return true;
 			}
 			else if (!strncmp_P(message, GetState_Hitch_STR, GetState_Hitch_STR_LEN)) {
@@ -303,13 +314,6 @@ namespace EthernetApi {
 				strcpy_P(messageBuffer, ParseError_UnrecognizedDiagCommand);
 				return false;
 			}
-		}
-		else if (sscanf_P(message, Process_FMT_STR, &longData) == 1) {
-			command.type = CommandType::Process;
-			command.data.process[0] = static_cast<uint8_t>(longData & 0xFF);
-			command.data.process[1] = static_cast<uint8_t>((longData >> 8) & 0xFF);
-			command.data.process[2] = static_cast<uint8_t>((longData >> 16) & 0xFF);
-			return true;
 		}
 		else if (!strncmp_P(message, ProcessRaiseHitch_STR, ProcessRaiseHitch_STR_LEN)) {
 			command.type = CommandType::ProcessRaiseHitch;

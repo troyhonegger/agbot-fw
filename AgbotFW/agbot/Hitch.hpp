@@ -57,6 +57,11 @@ namespace agbot {
 			uint8_t targetHeight;
 			mutable uint8_t actualHeight;
 			int8_t dh;
+
+			// Computes the difference between target and actual heights, and returns the direction the hitch
+			// would be moving if update() were called. There is some I/O overhead associated with this, so a
+			// calling function should cache the value where possible rather than calling it twice.
+			int8_t getNewDH() const;
 		public:
 			// Creates a new hitch object. Until begin() is called, any other member functions are still undefined.
 			Hitch() : config(nullptr), targetHeight(STOP), actualHeight(MAX_HEIGHT), dh(0) {  }
@@ -93,5 +98,9 @@ namespace agbot {
 			// Raises, lowers, or stops the hitch to try and reach the target height. Note that this is the ONLY function that
 			// actually moves the hitch - other functions simply instruct the update() function on what to do
 			void update();
+
+			// Writes the information pertaining to the hitch to the given string. Writes at most n characters, and returns the number of
+			// characters that written (or that would have been written, if the size exceeds n)
+			size_t serialize(char* str, size_t n) const;
 	};
 }

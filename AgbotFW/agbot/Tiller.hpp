@@ -51,7 +51,7 @@ namespace agbot {
 			Config const* config;
 			uint8_t state; // To save space, encodes TillerState in least significant 4 bits, id in next 2, and dh in next 2
 			uint8_t targetHeight;
-			uint8_t actualHeight;
+			mutable uint8_t actualHeight;
 			inline void setState(TillerState state) { Tiller::state = (Tiller::state & 0xF0) | static_cast<uint8_t>(state); }
 			inline void setDH(int8_t dh) { state = (state & 0x3F) | ((dh < 0 ? -1 : dh & 3) << 6); }
 			
@@ -87,7 +87,7 @@ namespace agbot {
 			inline uint8_t getActualHeight() const { return actualHeight; }
 			// Reads and stores the height from the tiller's height sensor. This is the actual, physical height of the trailer on a scale from 0-100,
 			// and as such it may be different from the target height.
-			void updateActualHeight();
+			void updateActualHeight() const;
 
 			// Puts the tiller in processing or diagnostics mode. This should be called every time the machine mode changes.
 			// It is also possible to put the tiller in MachineMode::Unset, though this state was really designed to refer to
@@ -119,5 +119,9 @@ namespace agbot {
 			// controller loop; other commands (including diagnostics commands, stop commands, etc) only schedule operations to be performed in
 			// the update() function
 			void update();
+
+			// Writes the information pertaining to this tiller to the given string. Writes at most n characters, and returns the number of
+			// characters that written (or that would have been written, if the size exceeds n)
+			size_t serialize(char* str, size_t n) const;
 	};
 }

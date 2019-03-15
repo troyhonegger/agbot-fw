@@ -1,19 +1,34 @@
 ﻿#include <Arduino.h>
 
-#include "SerialApi.h"
-
 #include "Config.hpp"
+#include "EthernetApi.hpp"
 #include "Estop.hpp"
 #include "Hitch.hpp"
 #include "Tiller.hpp"
 #include "Sprayer.hpp"
 
-agbot::Config config;
-agbot::Estop estop;
-agbot::Hitch hitch;
-agbot::Tiller tillers[agbot::Tiller::COUNT];
-agbot::Sprayer sprayers[agbot::Sprayer::COUNT];
-agbot::MachineMode currentMode = agbot::MachineMode::Unset;
+#include <string.h>
+
+using namespace agbot;
+
+static const char KEEPALIVE_RESPONSE[] PROGMEM = "KeepAlive Acknowledge";
+static const char ESTOP_ENGAGED_RESPONSE[] PROGMEM = "Estop Engaged";
+static const char ERR_NOT_IN_PROCESS_MODE[] PROGMEM = "ERROR: Command invalid - not in process mode";
+static const char ERR_NOT_IN_DIAG_MODE[] PROGMEM = "ERROR: Command invalid - not in diag mode";
+
+static const char MODE_PROCESS[] PROGMEM = "Processing";
+static const char MODE_DIAG[] PROGMEM = "Diagnostics";
+static const char MODE_UNSET[] PROGMEM = "Unset";
+
+static const char ERR_OUT_OF_RANGE_FMT_STR[] PROGMEM = "ERROR: Value must be between %d and %d";
+
+Config config;
+Estop estop;
+Hitch hitch;
+Tiller tillers[Tiller::COUNT];
+Sprayer sprayers[Sprayer::COUNT];
+MachineMode currentMode = MachineMode::Unset;
+unsigned long lastKeepAliveTime;
 
 #ifndef DEMO_MODE
 
@@ -21,323 +36,171 @@ void setup() {
 	config.begin();
 	estop.begin();
 	hitch.begin(&config);
-	for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
+	for (uint8_t i = 0; i < Tiller::COUNT; i++) {
 		tillers[i].begin(i, &config);
 	}
-	for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
+	for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
 		sprayers[i].begin(i, &config);
 	}
-	initSerialApi();
+	EthernetApi::begin();
+	lastKeepAliveTime = millis();
 }
 
-#endif // DEMO_MODE
-
-bool processResetCommand(char *message) {
-	switch (currentMode) {
-		case agbot::MachineMode::Process:
-			for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
-				sprayers[i].cancelSpray();
-			}
-			for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
-				tillers[i].cancelLower();
-			}
-			break;
-		case agbot::MachineMode::Diag:
-			for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
-				sprayers[i].setStatus(agbot::Sprayer::OFF);
-			}
-			for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
-				tillers[i].stop();
-			}
-			break;
-		default: // unset mode - everything is already stopped
-			break;
-	}
-	return true;
-}
-
-bool processSetModeCommand(char *message) {
-	if (message[2] != '=') { return false; }
-	switch(message[3]) {
-		case 'P':
-		case 'p':
-			if (currentMode != agbot::MachineMode::Process) {
-				currentMode = agbot::MachineMode::Process;
-				for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
-					tillers[i].setMode(currentMode);
-				}
-				for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
-					sprayers[i].setMode(currentMode);
-				}
-				printMessage(MSG_LVL_INFORMATION, F("Machine is now in process mode."));
-			}
+bool messageProcessor(EthernetApi::Command const& command, char* messageText) {
+	switch (command.type) {
+		case EthernetApi::CommandType::Estop: {
+			estop.engage();
+			strncpy_P(messageText, ESTOP_ENGAGED_RESPONSE, EthernetApi::MAX_MESSAGE_SIZE);
 			return true;
-		case 'D':
-		case 'd':
-			if (currentMode != agbot::MachineMode::Diag) {
-				currentMode = agbot::MachineMode::Diag;
-				for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
-					tillers[i].setMode(currentMode);
-				}
-				for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
-					sprayers[i].setMode(currentMode);
-				}
-				printMessage(MSG_LVL_INFORMATION, F("Machine is now in diag mode."));
-			}
+		} break;
+		case EthernetApi::CommandType::KeepAlive: {
+			strncpy_P(messageText, KEEPALIVE_RESPONSE, EthernetApi::MAX_MESSAGE_SIZE);
+			lastKeepAliveTime = millis();
 			return true;
-		default:
-			return false;
-	}
-}
-
-bool processGetStateCommand(char *message) {
-	switch (message[2]) {
-		case 'M':
-		case 'm':
-			printStartMessage(MSG_LVL_INFORMATION);
-			Serial.print(F("Machine mode="));
-			switch (currentMode) {
-				case agbot::MachineMode::Process:
-					Serial.print(F("PROCESS"));
-					break;
-				case agbot::MachineMode::Diag:
-					Serial.print(F("DIAG"));
-					break;
-				default:
-					Serial.print(F("UNSET"));
-					break;
+		} break;
+		case EthernetApi::CommandType::SetMode: {
+			currentMode = command.data.machineMode;
+			for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
+				sprayers[i].setMode(currentMode);
 			}
-			Serial.print('\n');
-			return true;
-		case 'C':
-		case 'c':
-			switch (message[3]) {
-				case 'P':
-				case 'p':
-					printStartMessage(MSG_LVL_INFORMATION);
-					Serial.print(F("Precision=")); Serial.print(config.get(agbot::Setting::Precision)); Serial.print('\n');
-					return true;
-				case 'D':
-				case 'd':
-					printStartMessage(MSG_LVL_INFORMATION);
-					Serial.print(F("Response Delay=")); Serial.print(config.get(agbot::Setting::ResponseDelay)); Serial.print('\n');
-					return true;
-				case 'A':
-				case 'a':
-					printStartMessage(MSG_LVL_INFORMATION);
-					Serial.print(F("Tiller Accuracy=")); Serial.print(config.get(agbot::Setting::TillerAccuracy)); Serial.print('\n');
-					return true;
-				case 'R':
-				case 'r':
-					printStartMessage(MSG_LVL_INFORMATION);
-					Serial.print(F("Tiller Raise Time=")); Serial.print(config.get(agbot::Setting::TillerLowerTime)); Serial.print('\n');
-					return true;
-				case 'L':
-				case 'l':
-					printStartMessage(MSG_LVL_INFORMATION);
-					Serial.print(F("Tiller Lower Time=")); Serial.print(config.get(agbot::Setting::TillerLowerTime)); Serial.print('\n');
-					return true;
-				default:
-					return false;
+			for (uint8_t i = 0; i < Tiller::COUNT; i++) {
+				tillers[i].setMode(currentMode);
 			}
-		case 'S':
-		case 's':
-			uint8_t sprayerId;
-			if (parseNum<uint8_t>(message + 3, &sprayerId, agbot::Sprayer::COUNT - 1) >= 1) {
-				printStartMessage(MSG_LVL_INFORMATION);
-				Serial.print(F("Sprayer ")); Serial.print((int) sprayerId, 10);
-				if (sprayers[sprayerId].getStatus() == agbot::Sprayer::ON) {
-					Serial.print(F(" ON\n"));
-				}
-				else {
-					Serial.print(F(" OFF\n"));
-				}
+		} break;
+		case EthernetApi::CommandType::Process: {
+			if (currentMode != MachineMode::Process) {
+				strncpy_P(messageText, ERR_NOT_IN_PROCESS_MODE, EthernetApi::MAX_MESSAGE_SIZE);
 				return true;
 			}
 			else {
-				return false;
+				// Data corresponding to tillers is in least-significant nibble of each byte
+				for (int i = 0; i < 3; i++) {
+					if (command.data.process[i] & 0x07) { tillers[i].scheduleLower(); }
+				}
+				// line up the weed/corn data from the sprayers into a bitfield where each bit lines
+				// up with the corresponding sprayer. Then check each bit and schedule as needed.
+				uint8_t sprayerData = (command.data.process[0] >> 4) | command.data.process[2];
+				for (int i = 0; i < 8; i++) {
+					if (sprayerData & (1 << i)) { sprayers[i].scheduleSpray(); }
+				}
 			}
-		case 'T':
-		case 't':
-			uint8_t tillerId;
-			if (parseNum<uint8_t>(message + 3, &tillerId, agbot::Tiller::COUNT) >= 1) {
-				printStartMessage(MSG_LVL_INFORMATION);
-				Serial.print(F("Tiller ")); Serial.print((int) tillerId, 10);
-				Serial.print(F(": Actual Height=")); Serial.print((int) tillers[tillerId].getActualHeight(), 10);
-				Serial.print(F(", Target Height="));
-				if (tillers[tillerId].getTargetHeight() == agbot::Tiller::STOP) {
-					Serial.print(F("<stop>"));
-				}
-				else {
-					Serial.print((int) tillers[tillerId].getTargetHeight(), 10);
-				}
-				Serial.print(F(", Status="));
-				switch (tillers[tillerId].getDH()) {
-					case -1:
-						Serial.print(F(", Status=LOWERING\n"));
-						break;
-					case 1:
-						Serial.print(F(", Status=RAISING\n"));
-						break;
-					case 0:
-						Serial.print(F(", Status=STOPPED\n"));
-						break;
-					default:
-						Serial.print(F(", Status=??????\n"));
-						break;
-				}
+		} break;
+		case EthernetApi::CommandType::SetConfig: {
+			Setting setting = command.data.config.setting;
+			uint16_t value = command.data.config.value;
+			if (value > 100 && setting != Setting::Precision && setting != Setting::ResponseDelay && setting != Setting::KeepAliveTimeout
+					&& setting != Setting::TillerLowerTime && setting != Setting::TillerRaiseTime) {
+				snprintf_P(messageText, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, 100);
 				return true;
 			}
 			else {
-				return false;
+				config.set(setting, value);
 			}
-			
-		default:
-			return false;
-	}
-}
-
-bool processsSetConfigCommand(char *message) {
-	if (!message[2] || (message[3] != '=')) { return false; }
-	uint16_t newValue;
-	if (parseNum(message + 4, &newValue, 0xFFFFU) <= 0) { return false; }
-	switch (message[2]) {
-		case 'P': // precision
-		case 'p':
-			config.set(agbot::Setting::Precision, newValue);
-			printStartMessage(MSG_LVL_INFORMATION);
-			Serial.print(F("Set precision to ")); Serial.print(newValue); Serial.print('\n');
-			return true;
-		case 'D': // response delay
-		case 'd':
-			config.set(agbot::Setting::ResponseDelay, newValue);
-			printStartMessage(MSG_LVL_INFORMATION);
-			Serial.print(F("Set response delay to ")); Serial.print(newValue); Serial.print('\n');
-			return true;
-		case 'A': // tiller accuracy
-		case 'a':
-			if (newValue > 100) {
-				return false;
+		} break;
+		case EthernetApi::CommandType::GetState: {
+			switch (command.data.query.type) {
+				case EthernetApi::QueryType::Mode:
+					strncpy_P(messageText, currentMode == MachineMode::Process ? MODE_PROCESS : currentMode == MachineMode::Diag ? MODE_DIAG : MODE_UNSET,
+						EthernetApi::MAX_MESSAGE_SIZE);
+					break;
+				case EthernetApi::QueryType::Configuration:
+					snprintf_P(messageText, EthernetApi::MAX_MESSAGE_SIZE, "%ud", config.get(static_cast<Setting>(command.data.query.value)));
+					break;
+				case EthernetApi::QueryType::Tiller:
+					if (command.data.query.value >= Tiller::COUNT) {
+						snprintf(messageText, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Tiller::COUNT - 1);
+					}
+					else { tillers[command.data.query.value].serialize(messageText, EthernetApi::MAX_MESSAGE_SIZE); }
+					break;
+				case EthernetApi::QueryType::Sprayer:
+					if (command.data.query.value >= Sprayer::COUNT) {
+						snprintf(messageText, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Sprayer::COUNT - 1);
+					}
+					else { sprayers[command.data.query.value].serialize(messageText, EthernetApi::MAX_MESSAGE_SIZE); }
+					break;
+				case EthernetApi::QueryType::Hitch:
+					hitch.serialize(messageText, EthernetApi::MAX_MESSAGE_SIZE);
+					break;
 			}
-			else {
-				config.set(agbot::Setting::TillerAccuracy, newValue);
-				printStartMessage(MSG_LVL_INFORMATION);
-				Serial.print(F("Set tiller accuracy to ")); Serial.print(newValue); Serial.print('\n');
+			return true;
+		} break;
+		case EthernetApi::CommandType::DiagSet: {
+			if (currentMode != MachineMode::Diag) {
+				strncpy_P(messageText, ERR_NOT_IN_DIAG_MODE, EthernetApi::MAX_MESSAGE_SIZE);
 				return true;
 			}
-		case 'R': // tiller raise time
-		case 'r':
-			config.set(agbot::Setting::TillerRaiseTime, newValue);
-			printStartMessage(MSG_LVL_INFORMATION);
-			Serial.print(F("Set tiller raise time to ")); Serial.print(newValue); Serial.print('\n');
-			return true;
-		case 'L': // tiller lower time
-		case 'l':
-			config.set(agbot::Setting::TillerLowerTime, newValue);
-			printStartMessage(MSG_LVL_INFORMATION);
-			Serial.print(F("Set tiller lower time to ")); Serial.print(newValue); Serial.print('\n');
-			return true;
-		default:
-			return false;
+			switch (command.data.diag.type) {
+				case EthernetApi::PeripheralType::Sprayer: {
+					bool status = static_cast<bool>(command.data.diag.value);
+					for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
+						if (command.data.diag.id & (1 << i)) {
+							sprayers[i].setStatus(status);
+						}
+					}
+				} break;
+				case EthernetApi::PeripheralType::Tiller: {
+					if (command.data.diag.value > Tiller::MAX_HEIGHT && command.data.diag.value != Tiller::STOP) {
+						snprintf_P(messageText, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Tiller::MAX_HEIGHT);
+						return true;
+					}
+					else {
+						for (uint8_t i = 0; i < Tiller::COUNT; i++) {
+							if (command.data.diag.id & (1 << i)) {
+								tillers[i].setTargetHeight(command.data.diag.value);
+							}
+						}
+					}
+				} break;
+				case EthernetApi::PeripheralType::Hitch: {
+					if (command.data.diag.value > Hitch::MAX_HEIGHT && command.data.diag.value != Hitch::STOP) {
+						snprintf_P(messageText, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Hitch::MAX_HEIGHT);
+						return true;
+					}
+					else {
+						hitch.setTargetHeight(command.data.diag.value);
+					}
+				} break;
+			}
+		} break;
+		case EthernetApi::CommandType::ProcessLowerHitch: {
+			if (currentMode != MachineMode::Process) {
+				strncpy_P(messageText, ERR_NOT_IN_PROCESS_MODE, EthernetApi::MAX_MESSAGE_SIZE);
+				return true;
+			}
+			else {
+				hitch.lower();
+			}
+		} break;
+		case EthernetApi::CommandType::ProcessRaiseHitch: {
+			if (currentMode != MachineMode::Process) {
+				strncpy_P(messageText, ERR_NOT_IN_PROCESS_MODE, EthernetApi::MAX_MESSAGE_SIZE);
+				return true;
+			}
+			else {
+				hitch.raise();
+			}
+		} break;
 	}
-}
-
-bool processDiagCommand(char *message) {
-	// TODO: implement
-	printMessage(MSG_LVL_ERROR, F("Diagnostic commands are not yet implemented"));
 	return false;
 }
 
-bool processProcessCommand(char *message) {
-	if (currentMode != agbot::MachineMode::Process) {
-		return false;
-	}
-	unsigned long code;
-	if (parseDigits(message + 2, &code, 0xFFFFFLU, 16) == 5) {
-		uint8_t tillerCode = ((code & 0x70000) ? 1 : 0) | ((code & 0x700) ? 2 : 0) | ((code & 0x7) ? 4 : 0);
-		for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
-			if (tillerCode & (1<<i)) {
-				tillers[i].scheduleLower();
-			}
-		}
-		// NOTE: the following mapping assumes that sprayer 0 sprays foxtail, sprayer 1 sprays cocklebur, sprayer 2 sprays ragweed,
-		// and sprayer 3 sprays fertilizer in order to be compliant with the API specification for the bit order. If necessary,
-		// a different mapping could technically be configured in firmware, and even set on-the-fly via a saved setting. However,
-		// it's probably best to leave the mapping as it is and allow the software to map which weed corresponds to which bit.
-		uint8_t sprayerCode = ((code & 0xF000) >> 12) | (code & 0xF0);
-		for (uint8_t i = 1; i < agbot::Sprayer::COUNT; i++) {
-			if (sprayerCode & (1<<i)) {
-				sprayers[i].scheduleSpray();
-			}
-		}
-		return true;
-	}
-	else {
-		return false;
-	}
-}
-
-void processMessage(char *message) {
-	if (*message != MESSAGE_START) {
-		goto msgInvalid;
-	}
-	switch (getMessageType(message)) {
-		case MSG_CMD_RESET:
-			if (processResetCommand(message)) { break; }
-			else { goto msgInvalid; }
-			break;
-		case MSG_CMD_SET_MODE:
-			if (processSetModeCommand(message)) { break; }
-			else { goto msgInvalid; }
-			break;
-		case MSG_CMD_GET_STATE:
-			if (processGetStateCommand(message)) { break; }
-			else { goto msgInvalid; }
-			break;
-		case MSG_CMD_SET_CONFIG:
-			if (processsSetConfigCommand(message)) { break; }
-			else { goto msgInvalid; }
-			break;
-		case MSG_CMD_DIAG:
-			if (processDiagCommand(message)) { break; }
-			else { goto msgInvalid; }
-			break;
-		case MSG_CMD_PROCESS:
-			if (processProcessCommand(message)) { break; }
-			else { goto msgInvalid; }
-			break;
-		default: // MSG_CMD_UNRECOGNIZED
-			goto msgInvalid;
-			break;
-	}
-	return;
-
-	msgInvalid:
-		printStartMessage(MSG_LVL_WARNING);
-		Serial.print(F("Skipping invalid message: "));
-		Serial.print(message);
-		Serial.print('\n');
-		return;
-}
-
-#ifndef DEMO_MODE
-
 void loop() {
-	readSerial();
-	if (serialMessageAvailable()) {
-		processMessage(getSerialMessage());
-	}
+	while (EthernetApi::read(messageProcessor) != EthernetApi::ReadStatus::NoMessage);
 	
+	if (isElapsed(lastKeepAliveTime + config.get(Setting::KeepAliveTimeout))) {
+		estop.engage();
+	}
+
 	estop.update();
 	bool hitchNeedsUpdate = hitch.needsUpdate();
 	if (hitchNeedsUpdate || hitch.getDH()) {
-		for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) { tillers[i].stop(true); }
-		for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) { sprayers[i].stop(true); }
+		for (uint8_t i = 0; i < Tiller::COUNT; i++) { tillers[i].stop(true); }
+		for (uint8_t i = 0; i < Sprayer::COUNT; i++) { sprayers[i].stop(true); }
 		if (hitchNeedsUpdate) { hitch.update(); }
 	}
 	if (!hitch.getDH()) {
-		for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) { tillers[i].update(); }
-		for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) { sprayers[i].update(); }
+		for (uint8_t i = 0; i < Tiller::COUNT; i++) { tillers[i].update(); }
+		for (uint8_t i = 0; i < Sprayer::COUNT; i++) { sprayers[i].update(); }
 	}
 }
 

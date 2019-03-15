@@ -256,12 +256,6 @@
     <Compile Include="Hitch.hpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="SerialApi.cpp">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="SerialApi.h">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="Config.cpp">
       <SubType>compile</SubType>
     </Compile>

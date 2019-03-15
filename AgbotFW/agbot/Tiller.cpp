@@ -12,6 +12,13 @@
 #include "Config.hpp"
 #include "Tiller.hpp"
 
+#include <string.h>
+
+static const char TILLER_FMT_STR[] PROGMEM = "{\"actualHeight\":%hhud,\"dh\":%hhd,\"targetHeight\":%hhud,\"until\":%ld}";
+static const char TILLER_NO_UNTIL_FMT_STR[] PROGMEM = "{\"actualHeight\":%hhud,\"dh\":%hhd,\"targetHeight\":%hhud}";
+static const char TILLER_STOPPED_FMT_STR[] PROGMEM = "{\"actualHeight\":%hhud,\"dh\":%hhd,\"targetHeight\":\"STOP\",\"until\":%ld}";
+static const char TILLER_STOPPED_NO_UNTIL_FMT_STR[] PROGMEM = "{\"actualHeight\":%hhud,\"dh\":%hhd,\"targetHeight\":\"STOP\"}";
+
 namespace agbot {
 	void Tiller::begin(uint8_t id, Config const* config) {
 		state = ((id & 3) << 4) | static_cast<uint8_t>(TillerState::Unset);
@@ -32,7 +39,7 @@ namespace agbot {
 		pinMode(getLowerPin(), INPUT);
 	}
 
-	inline void Tiller::updateActualHeight() { actualHeight = map(analogRead(getHeightSensorPin()), 0, 1023, 0, MAX_HEIGHT); }
+	inline void Tiller::updateActualHeight() const { actualHeight = map(analogRead(getHeightSensorPin()), 0, 1023, 0, MAX_HEIGHT); }
 
 	void Tiller::setMode(MachineMode mode) {
 		switch (mode) {
@@ -113,13 +120,22 @@ namespace agbot {
 		updateActualHeight();
 		int8_t newDh = 0;
 		if (targetHeight != STOP) {
-			// TODO: implement some kind of hysteresis - for example, stop the tiller when
-			// |target - initial| < accuracy/2, start it when |target - initial| >= accuracy,
-			// otherwise no change to the magnitude (but perhaps the sign) of DH. Of course if
-			// targetHeight == STOP, newDh = 0 no matter what.
-			// This applies to the Hitch class too
-			if ((targetHeight > actualHeight) && (targetHeight - actualHeight > config->get(Setting::TillerAccuracy))) { newDh = 1; }
-			else if ((targetHeight < actualHeight) && (actualHeight - targetHeight > config->get(Setting::TillerAccuracy))) { newDh = -1; }
+			// The following applies a sort of software hysteresis to the tiller control logic.
+			// If |target - initial| <= accuracy / 2, the tiller must be stoppped;
+			// if |target - initial| > accuracy, the tiller must be started;
+			// if accuracy / 2 <= |target - initial| < accuracy, the tiller will maintain the
+			// previous state, unless doing so would push it further away from the target height
+			uint16_t accuracy = config->get(Setting::TillerAccuracy);
+			if (targetHeight > actualHeight) {
+				if (targetHeight - actualHeight > accuracy) { newDh = 1; }
+				else if (targetHeight - actualHeight <= (accuracy / 2)) { newDh = 0; }
+				else { newDh = getDH() == 1 ? 1 : 0; }
+			}
+			else if (targetHeight < actualHeight) {
+				if (actualHeight - targetHeight > accuracy) { newDh = -1; }
+				else if (actualHeight - targetHeight <= (accuracy / 2)) { newDh = 0; }
+				else { newDh = getDH() == -1 ? -1 : 0; }
+			}
 		}
 
 		if (newDh != getDH()) {
@@ -137,6 +153,28 @@ namespace agbot {
 					digitalWrite(getRaisePin(), OFF_VOLTAGE);
 					digitalWrite(getLowerPin(), ON_VOLTAGE);
 					break;
+			}
+		}
+	}
+
+	size_t Tiller::serialize(char *str, size_t n) const {
+		updateActualHeight();
+		TillerState state = getState();
+		if (state != TillerState::ProcessLowering && state != TillerState::ProcessScheduled) {
+			if (targetHeight == Tiller::STOP) {
+				return snprintf_P(str, n, TILLER_STOPPED_NO_UNTIL_FMT_STR, actualHeight, getDH());
+			}
+			else {
+				return snprintf_P(str, n, TILLER_NO_UNTIL_FMT_STR, actualHeight, getDH(), targetHeight);
+			}
+		}
+		else {
+			int32_t until = state == TillerState::ProcessScheduled ? lowerTime - millis() : raiseTime - millis();
+			if (targetHeight == Tiller::STOP) {
+				return snprintf_P(str, n, TILLER_STOPPED_FMT_STR, actualHeight, getDH(), until);
+			}
+			else {
+				return snprintf_P(str, n, TILLER_FMT_STR, actualHeight, getDH(), targetHeight, until);
 			}
 		}
 	}
