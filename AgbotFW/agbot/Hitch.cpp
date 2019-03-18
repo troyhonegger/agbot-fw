@@ -11,8 +11,8 @@
 #include "Config.hpp"
 #include "Hitch.hpp"
 
-static const char HITCH_FMT_STR[] PROGMEM = "{\"actualHeight\":%hhud,\"dh\":%hhd,\"targetHeight\":%hhud";
-static const char HITCH_STOPPED_FMT_STR[] PROGMEM = "{\"actualHeight\":%hhud,\"dh\":%hhd,\"targetHeight\":\"STOP\"}";
+static const char HITCH_FMT_STR[] PROGMEM = "{\"height\":%hhud,\"dh\":%hhd,\"target\":%hhud";
+static const char HITCH_STOPPED_FMT_STR[] PROGMEM = "{\"height\":%hhud,\"dh\":%hhd,\"target\":\"STOP\"}";
 
 namespace agbot {
 	inline uint8_t Hitch::getActualHeight() const {

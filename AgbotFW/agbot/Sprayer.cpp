@@ -122,6 +122,5 @@ namespace agbot {
 			int32_t until = state == SprayerState::ProcessOn ? offTime - millis() : onTime - millis();
 			return snprintf(str, n, "%s %ld", buf, until);
 		}
-		return 0;
 	}
 }

@@ -161,7 +161,7 @@ void messageProcessor(EthernetApi::Command const& command, char* response) {
 }
 
 void loop() {
-	while (EthernetApi::read(messageProcessor) != EthernetApi::ReadStatus::NoMessage);
+	EthernetApi::read(messageProcessor);
 	
 	if (isElapsed(lastKeepAliveTime + config.get(Setting::KeepAliveTimeout))) {
 		estop.engage();

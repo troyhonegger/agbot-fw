@@ -14,10 +14,10 @@
 
 #include <string.h>
 
-static const char TILLER_FMT_STR[] PROGMEM = "{\"actualHeight\":%hhud,\"dh\":%hhd,\"targetHeight\":%hhud,\"until\":%ld}";
-static const char TILLER_NO_UNTIL_FMT_STR[] PROGMEM = "{\"actualHeight\":%hhud,\"dh\":%hhd,\"targetHeight\":%hhud}";
-static const char TILLER_STOPPED_FMT_STR[] PROGMEM = "{\"actualHeight\":%hhud,\"dh\":%hhd,\"targetHeight\":\"STOP\",\"until\":%ld}";
-static const char TILLER_STOPPED_NO_UNTIL_FMT_STR[] PROGMEM = "{\"actualHeight\":%hhud,\"dh\":%hhd,\"targetHeight\":\"STOP\"}";
+static const char TILLER_FMT_STR[] PROGMEM = "{\"height\":%hhud,\"dh\":%hhd,\"target\":%hhud,\"until\":%ld}";
+static const char TILLER_NO_UNTIL_FMT_STR[] PROGMEM = "{\"height\":%hhud,\"dh\":%hhd,\"target\":%hhud}";
+static const char TILLER_STOPPED_FMT_STR[] PROGMEM = "{\"height\":%hhud,\"dh\":%hhd,\"target\":\"STOP\",\"until\":%ld}";
+static const char TILLER_STOPPED_NO_UNTIL_FMT_STR[] PROGMEM = "{\"height\":%hhud,\"dh\":%hhd,\"target\":\"STOP\"}";
 
 namespace agbot {
 	void Tiller::begin(uint8_t id, Config const* config) {

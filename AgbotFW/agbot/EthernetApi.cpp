@@ -31,8 +31,12 @@
 // Since the API only speaks when spoken to, we can get away with one message buffer
 // for both incoming and outgoing messages. Messages are read into here and parsed;
 // if a response is merited, it is copied back into the message buffer and sent
-static char messageBuffer[agbot::EthernetApi::MAX_MESSAGE_SIZE] = { 0 };
+static char messageBuffer[agbot::EthernetApi::MAX_CLIENTS][agbot::EthernetApi::MAX_MESSAGE_SIZE] = { 0 };
+static char responseBuffer[agbot::EthernetApi::MAX_MESSAGE_SIZE] = { 0 };
+static EthernetClient clients[agbot::EthernetApi::MAX_CLIENTS] = { 0 };
+static uint8_t writePosns[agbot::EthernetApi::MAX_CLIENTS] = { 0 };
 static EthernetServer server(8010); // use port 8010
+static uint8_t numClients = 0;
 
 // Constants used by message parsing code
 static const char SetMode_FMT_STR[] PROGMEM = "SetMode %10s";
@@ -75,11 +79,12 @@ MAKE_CONST_STR_WITH_LEN(OFF);
 MAKE_CONST_STR_WITH_LEN(STOP);
 MAKE_CONST_STR(ACK);
 
-static const char ParseError_UnrecognizedCommand[] PROGMEM = "PARSE ERROR: Command did not match any of the expected formats.";
+static const char ParseError_Overflow[] PROGMEM = "PARSE ERROR: Message was too long";
+static const char ParseError_UnrecognizedCommand[] PROGMEM = "PARSE ERROR: Command did not match any expected format.";
 static const char ParseError_InvalidMachineMode[] PROGMEM = "PARSE ERROR: Invalid machine mode: ";
 static const char ParseError_UnrecognizedSetting[] PROGMEM = "PARSE ERROR: Invalid config setting: ";
 static const char ParseError_UnrecognizedQueryType[] PROGMEM = "PARSE ERROR: Invalid query type: ";
-static const char ParseError_UnrecognizedDiagCommand[] PROGMEM = "PARSE ERROR: Invalid diag command: Should look like 'DiagSet Sprayer[##]/Tiller[#]/Hitch={value}'";
+static const char ParseError_UnrecognizedDiagCommand[] PROGMEM = "PARSE ERROR: Invalid diag command";
 static const char ParseError_TillerDiag[] PROGMEM = "PARSE ERROR: Tiller value must be 'STOP' or an integer";
 static const char ParseError_SprayerDiag[] PROGMEM = "PARSE ERROR: Sprayer value must be 'ON' or 'OFF'";
 static const char ParseError_HitchDiag[] PROGMEM = "PARSE ERROR: Hitch value must be 'STOP' or an integer";
@@ -96,43 +101,90 @@ namespace EthernetApi {
 		server.begin();
 	}
 
-	static bool parseSetting(Command&, char*);
-	static bool parseMessage(Command&, char*);
+	static bool parseSetting(Command&, char const*);
+	static bool parseMessage(Command&, char const*, char*);
+	static void wipeBuffer(char*, size_t);
 
-	ReadStatus read(void (*processor)(agbot::EthernetApi::Command const&, char*)) {
-		EthernetClient client = server.available();
-		if (!client) { return ReadStatus::NoMessage; }
-		client.read((uint8_t*) messageBuffer, MAX_MESSAGE_SIZE - 1); // don't forget to leave the last byte for a null terminator!
+	uint8_t read(void (*processor)(agbot::EthernetApi::Command const&, char*)) {
+		EthernetClient newClient = server.accept();
 
-		Command command;
-		ReadStatus status;
-
-		if (parseMessage(command, messageBuffer)) {
-			messageBuffer[0] = '\0';
-
-			processor(command, messageBuffer);
-
-			if (messageBuffer[0]) { status = ReadStatus::ValidMessage_Response; }
-			else {
-				strcpy_P(messageBuffer, ACK_STR);
-				status = ReadStatus::ValidMessage_NoResponse;
+		// check for new clients
+		if (newClient) {
+			for (uint8_t i = 0; i < MAX_CLIENTS; i++) {
+				if (!clients[i]) {
+					clients[i] = newClient;
+					numClients++;
+					break;
+				}
 			}
 		}
-		else {
-			// the error message has been loaded into the buffer
-			client.print(messageBuffer);
-			client.flush();
-			status = ReadStatus::InvalidMessage;
-		}
-		client.print(messageBuffer);
-		client.flush();
 
-		// clear the message buffer for next time
-		for (int i = 0; i < MAX_MESSAGE_SIZE; i++) { messageBuffer[i] = '\0'; }
-		return status;
+		Command command;
+		uint8_t retVal = 0;
+		uint8_t clientsFound = 0;
+		// process each client
+		for (uint8_t i = 0; i < EthernetApi::MAX_CLIENTS && clientsFound < numClients; i++) {
+			if (clients[i]) {
+				clientsFound++;
+				if (clients[i].available() > 0) {
+					
+					uint8_t startMsg = 0;
+					uint8_t endMsg = writePosns[i];
+
+					// read all data
+					writePosns[i] = clients[i].read((uint8_t*) (messageBuffer[i] + writePosns[i]), MAX_MESSAGE_SIZE - writePosns[i] - 1); // -1: don't forget null terminator!
+					
+					// scan newly read data for LF
+					for (; endMsg < writePosns[i]; endMsg++) {
+						// found complete message
+						if (messageBuffer[i][endMsg] == '\n') {
+							messageBuffer[i][endMsg] = '\0';
+							// parse and process it
+							if (parseMessage(command, messageBuffer[i] + startMsg, responseBuffer)) {
+								processor(command, responseBuffer);
+								retVal++;
+							}
+							else { retVal += 16; } // invalid message - increment high-order nibble of retVal
+
+							// print response (or just line if none)
+							if (responseBuffer[0]) { clients[i].println(responseBuffer); }
+							else { clients[i].println(); }
+							wipeBuffer(messageBuffer[i] + startMsg, endMsg - startMsg);
+							wipeBuffer(responseBuffer, MAX_MESSAGE_SIZE);
+							startMsg = endMsg + 1;
+						}
+					}
+
+					if (startMsg == 0 && writePosns[i] + 1 == MAX_MESSAGE_SIZE) {
+						// ERROR: client is overflowing the buffer. Yell at them and clear the buffer
+						// TODO: reset startMsg, endMsg and maybe writePosns[i]
+						retVal += 16;
+						wipeBuffer(messageBuffer[i], MAX_MESSAGE_SIZE);
+						strcpy_P(responseBuffer, ParseError_Overflow);
+						clients[i].println(responseBuffer);
+						wipeBuffer(responseBuffer, MAX_MESSAGE_SIZE);
+					}
+					writePosns[i] -= startMsg;
+					// shift the message(s) left so the first one starts at index 0
+					for (uint8_t j = 0; j <= endMsg - startMsg; j++) {
+						messageBuffer[i][j] = messageBuffer[i][startMsg++];
+					}
+				}
+			}
+		}
+
+		// check for and remove disconnected clients
+		for (uint8_t i = 0; i < MAX_CLIENTS; i++) {
+			if (clients[i] && !clients[i].connected()) {
+				clients[i].stop();
+				numClients--;
+			}
+		}
+
+		return retVal;
 	}
 
-	static bool parseSetting(Setting& setting, char* settingStr) {
+	static bool parseSetting(Setting& setting, char const* settingStr) {
 		if (!strcmp_P(settingStr, Precision_STR)) {
 			setting = Setting::Precision;
 			return true;
@@ -180,7 +232,7 @@ namespace EthernetApi {
 		else { return false; }
 	}
 
-	static bool parseMessage(Command& command, char* message) {
+	static bool parseMessage(Command& command, char const* message, char* response) {
 		// used to hold sscanf matches
 		char data[20] = {0};
 		uint32_t longData = 0;
@@ -214,8 +266,8 @@ namespace EthernetApi {
 				return true;
 			}
 			else {
-				strcpy_P(messageBuffer, ParseError_InvalidMachineMode);
-				strcat(messageBuffer, data);
+				strcpy_P(response, ParseError_InvalidMachineMode);
+				strcat(response, data);
 				return false;
 			}
 		}
@@ -229,8 +281,8 @@ namespace EthernetApi {
 					return true;
 				}
 				else {
-					strcpy_P(messageBuffer, ParseError_UnrecognizedSetting);
-					strcat(messageBuffer, data);
+					strcpy_P(response, ParseError_UnrecognizedSetting);
+					strcat(response, data);
 					return false;
 				}
 			}
@@ -249,8 +301,8 @@ namespace EthernetApi {
 				return true;
 			}
 			else {
-				strcpy_P(messageBuffer, ParseError_UnrecognizedQueryType);
-				strcat(messageBuffer, data);
+				strcpy_P(response, ParseError_UnrecognizedQueryType);
+				strcat(response, data);
 				return false;
 			}
 		}
@@ -259,8 +311,8 @@ namespace EthernetApi {
 			command.data.config.value = intData;
 			if (parseSetting(command.data.config.setting, data)) { return true; }
 			else {
-				strcpy_P(messageBuffer, ParseError_UnrecognizedSetting);
-				strcat(messageBuffer, data);
+				strcpy_P(response, ParseError_UnrecognizedSetting);
+				strcat(response, data);
 				return false;
 			}
 		}
@@ -281,7 +333,7 @@ namespace EthernetApi {
 					return true;
 				}
 				else {
-					strcpy_P(messageBuffer, ParseError_TillerDiag);
+					strcpy_P(response, ParseError_TillerDiag);
 					return false;	
 				}
 			}
@@ -297,7 +349,7 @@ namespace EthernetApi {
 					return true;
 				}
 				else {
-					strcpy_P(messageBuffer, ParseError_SprayerDiag);
+					strcpy_P(response, ParseError_SprayerDiag);
 					return false;
 				}
 			}
@@ -312,12 +364,12 @@ namespace EthernetApi {
 					return true;
 				}
 				else {
-					strcpy_P(messageBuffer, ParseError_HitchDiag);
+					strcpy_P(response, ParseError_HitchDiag);
 					return false;
 				}
 			}
 			else {
-				strcpy_P(messageBuffer, ParseError_UnrecognizedDiagCommand);
+				strcpy_P(response, ParseError_UnrecognizedDiagCommand);
 				return false;
 			}
 		}
@@ -330,9 +382,11 @@ namespace EthernetApi {
 			return true;
 		}
 		else {
-			strcpy_P(messageBuffer, ParseError_UnrecognizedCommand);
+			strcpy_P(response, ParseError_UnrecognizedCommand);
 			return false;
 		}
 	}
+
+	static inline void wipeBuffer(char* str, size_t size) { memset(str, 0, size); }
 }
 }

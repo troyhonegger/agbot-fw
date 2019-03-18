@@ -13,7 +13,8 @@
 
 namespace agbot {
 namespace EthernetApi {
-	const uint8_t MAX_MESSAGE_SIZE = 128;
+	const uint8_t MAX_MESSAGE_SIZE = 64;
+	const uint8_t MAX_CLIENTS = 8;
 
 	enum class CommandType : uint8_t {
 		Estop = 0,
@@ -73,19 +74,14 @@ namespace EthernetApi {
 	// This should be called inside the setup() function before read() is first called.
 	void begin();
 
-	enum class ReadStatus : uint8_t {
-		NoMessage = 0,
-		InvalidMessage = 1,
-		ValidMessage_NoResponse = 2,
-		ValidMessage_Response = 3
-	};
-
-	// Checks the Ethernet port for incoming messages. If it finds one, it parses it and calls processor().
+	// Checks the Ethernet port for incoming messages. If it finds any, it parses them and calls processor() once each.
 	// The first argument to processor() is the parsed command. The second is the place to put the response
 	// string. If the processor wants to respond to the message, it should copy it into the response buffer
 	// (being sure to keep it within the MAX_MESSAGE_SIZE buffer limit). Otherwise, it should ignore the
-	// response pointer, and the Ethernet API will take care of responding with "ACK". read() will then
-	// take care of sending the response and return a ReadStatus describing what it did.
-	ReadStatus read(void (*processor)(agbot::EthernetApi::Command const&, char*));
+	// response pointer. read() will then take care of sending the response and repeating the process for
+	// all connected clients. The most significant nibble of read()'s return value is the number of invalid
+	// messages found (i.e. processor() could not be called because the message could not be parsed). The
+	// least significant nibble is the number of valid messages found.
+	uint8_t read(void (*processor)(agbot::EthernetApi::Command const&, char*));
 }
 }
