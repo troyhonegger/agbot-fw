@@ -15,5 +15,8 @@ implementation consists a UTV with three primary components:
 2. A set of cameras, attached to the front of the UTV, connected to a Linux computer that performs image recognition
 3. An implement on the rear of the UTV that uses sprayers and tillers to eliminate the weeds as per the Linux computer's instructions
 
-This repository is the software component for part (3) of this system. The code runs on an Arduino that
+This repository is the software component for part (3) of this system. The code here runs on an Arduino that
 decodes the messages from the computer and uses them to control the tillers and sprayers.
+
+The Arduino communicates with the computer over the onboard vehicle network using an API built on top of the TCP protocol,
+as outlined in [this spec](./api-spec.md).
