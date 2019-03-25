@@ -14,7 +14,7 @@
 namespace agbot {
 namespace EthernetApi {
 	const uint8_t MAX_MESSAGE_SIZE = 64;
-	const uint8_t MAX_CLIENTS = 8;
+	const uint8_t MAX_CLIENTS = 8; // TODO: if using a W5100 Ethernet shield, this should be set to 4
 
 	enum class CommandType : uint8_t {
 		Estop = 0,

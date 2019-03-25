@@ -44,20 +44,20 @@ namespace agbot {
 			static const uint8_t MAX_HEIGHT = 100;
 			static const uint8_t STOP = 255;
 		private:
-			static const uint8_t ON_VOLTAGE = LOW; // TODO: this may not be right
-			static const uint8_t OFF_VOLTAGE = HIGH; // TODO: this may not be right
+			static const uint8_t ON_VOLTAGE = LOW; // TODO: toggle this if tillers are active high
+			static const uint8_t OFF_VOLTAGE = HIGH; // TODO: toggle this if tillers are active high
 			unsigned long lowerTime; // If state is TillerState::ProcessScheuled, tiller must begin lowering by this time
 			unsigned long raiseTime; // If state is TillerState::ProcessLowering, tiller must begin raising by this time
 			Config const* config;
 			uint8_t state; // To save space, encodes TillerState in least significant 4 bits, id in next 2, and dh in next 2
 			uint8_t targetHeight;
 			mutable uint8_t actualHeight;
-			inline void setState(TillerState state) { Tiller::state = (Tiller::state & 0xF0) | static_cast<uint8_t>(state); }
-			inline void setDH(int8_t dh) { state = (state & 0x3F) | ((dh < 0 ? -1 : dh & 3) << 6); }
+			inline void setState(TillerState state) { this->state = (this->state & 0xF0) | static_cast<uint8_t>(state); }
+			inline void setDH(int8_t dh) { state = (state & 0x3F) | ((dh & 3) << 6); }
 			
-			inline uint8_t getRaisePin() const { return getId() * 2 + 2; }
-			inline uint8_t getLowerPin() const { return getRaisePin() + 1; }
-			inline uint8_t getHeightSensorPin() const { return PIN_A3 + getId(); }
+			inline uint8_t getRaisePin() const { return getId() * 2 + 2; } // TODO: assign the tiller pins here by tiller ID
+			inline uint8_t getLowerPin() const { return getRaisePin() + 1; } // TODO: assign the tiller pins here by tiller ID
+			inline uint8_t getHeightSensorPin() const { return PIN_A3 + getId(); } // TODO: assign the tiller pins here by tiller ID
 
 			// disallow copy constructor since Tiller interacts with hardware, which makes duplicate instances a bad idea
 			void operator =(Tiller const&) {}

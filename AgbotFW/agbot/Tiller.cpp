@@ -14,10 +14,10 @@
 
 #include <string.h>
 
-static const char TILLER_FMT_STR[] PROGMEM = "{\"height\":%hhud,\"dh\":%hhd,\"target\":%hhud,\"until\":%ld}";
-static const char TILLER_NO_UNTIL_FMT_STR[] PROGMEM = "{\"height\":%hhud,\"dh\":%hhd,\"target\":%hhud}";
-static const char TILLER_STOPPED_FMT_STR[] PROGMEM = "{\"height\":%hhud,\"dh\":%hhd,\"target\":\"STOP\",\"until\":%ld}";
-static const char TILLER_STOPPED_NO_UNTIL_FMT_STR[] PROGMEM = "{\"height\":%hhud,\"dh\":%hhd,\"target\":\"STOP\"}";
+static const char TILLER_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hhd,\"target\":%hhu,\"until\":%ld}";
+static const char TILLER_NO_UNTIL_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hhd,\"target\":%hhu}";
+static const char TILLER_STOPPED_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hhd,\"target\":\"STOP\",\"until\":%ld}";
+static const char TILLER_STOPPED_NO_UNTIL_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hhd,\"target\":\"STOP\"}";
 
 namespace agbot {
 	void Tiller::begin(uint8_t id, Config const* config) {
@@ -26,7 +26,7 @@ namespace agbot {
 		*config; // dereference seg faults if null
 		targetHeight = STOP;
 		actualHeight = MAX_HEIGHT;
-		Tiller::config = config;
+		this->config = config;
 		pinMode(getRaisePin(), OUTPUT);
 		digitalWrite(getRaisePin(), OFF_VOLTAGE);
 		pinMode(getLowerPin(), OUTPUT);

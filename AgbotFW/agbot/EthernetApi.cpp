@@ -33,28 +33,30 @@
 // if a response is merited, it is copied back into the message buffer and sent
 static char messageBuffer[agbot::EthernetApi::MAX_CLIENTS][agbot::EthernetApi::MAX_MESSAGE_SIZE] = { 0 };
 static char responseBuffer[agbot::EthernetApi::MAX_MESSAGE_SIZE] = { 0 };
-static EthernetClient clients[agbot::EthernetApi::MAX_CLIENTS] = { 0 };
+static EthernetClient clients[agbot::EthernetApi::MAX_CLIENTS];
 static uint8_t writePosns[agbot::EthernetApi::MAX_CLIENTS] = { 0 };
 static EthernetServer server(8010); // use port 8010
 static uint8_t numClients = 0;
 
 // Constants used by message parsing code
-static const char SetMode_FMT_STR[] PROGMEM = "SetMode %10s";
-static const char GetState_FMT_STR[] PROGMEM = "GetState %13[^[ \t\f\r\n\v]%n";
-static const char GetState_Configuration_FMT_STR[] PROGMEM = "GetState Configuration[%19s]";
-static const char GetState_Sprayer_FMT_STR[] PROGMEM = "GetState Sprayer[%1hhx]";
-static const char GetState_Tiller_FMT_STR[] PROGMEM = "GetState Tiller[%1hhx]";
-static const char SetConfig_FMT_STR[] PROGMEM = "SetConfig %19[^=]=%ud";
+static const char SetMode_FMT_STR[] PROGMEM = "SetMode %11s";
+static const char GetState_FMT_STR[] PROGMEM = "GetState %13[^[ \t\f\r\n\v]";
+static const char GetState_Configuration_FMT_STR[] PROGMEM = "GetState Configuration[%19[^] \t\f\r\n\v]]%n";
+static const char GetState_Sprayer_FMT_STR[] PROGMEM = "GetState Sprayer[%1hhx]%n";
+static const char GetState_Tiller_FMT_STR[] PROGMEM = "GetState Tiller[%1hhx]%n";
+static const char SetConfig_FMT_STR[] PROGMEM = "SetConfig %19[^=]=%u";
 static const char DiagSet_FMT_STR[] PROGMEM = "DiagSet %11[^=]=%7s";
-static const char DiagSet_Tiller_FMT_STR[] PROGMEM = "DiagSet Tiller[%1hhx]=";
-static const char DiagSet_Sprayer_FMT_STR[] PROGMEM = "DiagSet Sprayer[%2hhx]=";
-static const char Process_FMT_STR[] PROGMEM = "Process #%lux";
-static const char ParseByte_FMT_STR[] PROGMEM = "%3hhud";
+static const char DiagSet_Tiller_FMT_STR[] PROGMEM = "DiagSet Tiller[%1hhx]=%n";
+static const char DiagSet_Sprayer_FMT_STR[] PROGMEM = "DiagSet Sprayer[%2hhx]=%n";
+static const char Process_FMT_STR[] PROGMEM = "Process #%5lx";
+static const char ParseByte_FMT_STR[] PROGMEM = "%3hhu";
 
 MAKE_CONST_STR_WITH_LEN(Estop);
 MAKE_CONST_STR_WITH_LEN(KeepAlive);
 MAKE_CONST_STR_WITH_LEN(ProcessRaiseHitch);
 MAKE_CONST_STR_WITH_LEN(ProcessLowerHitch);
+static const char GetState_Mode_STR[] PROGMEM = "GetState Mode";
+static uint8_t GetState_Mode_STR_LEN = strlen_P(GetState_Mode_STR);
 static const char GetState_Hitch_STR[] PROGMEM = "GetState Hitch";
 static uint8_t GetState_Hitch_STR_LEN = strlen_P(GetState_Hitch_STR);
 
@@ -77,13 +79,12 @@ MAKE_CONST_STR(Hitch);
 MAKE_CONST_STR_WITH_LEN(ON);
 MAKE_CONST_STR_WITH_LEN(OFF);
 MAKE_CONST_STR_WITH_LEN(STOP);
-MAKE_CONST_STR(ACK);
 
 static const char ParseError_Overflow[] PROGMEM = "PARSE ERROR: Message was too long";
 static const char ParseError_UnrecognizedCommand[] PROGMEM = "PARSE ERROR: Command did not match any expected format.";
 static const char ParseError_InvalidMachineMode[] PROGMEM = "PARSE ERROR: Invalid machine mode: ";
 static const char ParseError_UnrecognizedSetting[] PROGMEM = "PARSE ERROR: Invalid config setting: ";
-static const char ParseError_UnrecognizedQueryType[] PROGMEM = "PARSE ERROR: Invalid query type: ";
+static const char ParseError_UnrecognizedQueryType[] PROGMEM = "PARSE ERROR: Invalid query type or syntax: ";
 static const char ParseError_UnrecognizedDiagCommand[] PROGMEM = "PARSE ERROR: Invalid diag command";
 static const char ParseError_TillerDiag[] PROGMEM = "PARSE ERROR: Tiller value must be 'STOP' or an integer";
 static const char ParseError_SprayerDiag[] PROGMEM = "PARSE ERROR: Sprayer value must be 'ON' or 'OFF'";
@@ -92,7 +93,7 @@ static const char ParseError_HitchDiag[] PROGMEM = "PARSE ERROR: Hitch value mus
 namespace agbot{
 namespace EthernetApi {
 	void begin() {
-		uint8_t mac[6] = { 0, 0, 0, 0, 0, 0 }; // TODO: fill this in
+		uint8_t mac[6] = { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC }; // TODO: fill this in
 		uint8_t controllerIP[4] = { 10, 0, 0, 2 };
 		Ethernet.begin(mac, controllerIP);
 		// adjust these two settings to taste
@@ -101,6 +102,7 @@ namespace EthernetApi {
 		server.begin();
 	}
 
+	static bool resetCount(int*);
 	static bool parseSetting(Command&, char const*);
 	static bool parseMessage(Command&, char const*, char*);
 	static void wipeBuffer(char*, size_t);
@@ -124,51 +126,50 @@ namespace EthernetApi {
 		uint8_t clientsFound = 0;
 		// process each client
 		for (uint8_t i = 0; i < EthernetApi::MAX_CLIENTS && clientsFound < numClients; i++) {
-			if (clients[i]) {
-				clientsFound++;
-				if (clients[i].available() > 0) {
-					
-					uint8_t startMsg = 0;
-					uint8_t endMsg = writePosns[i];
+			if (clients[i]) { clientsFound++; }
+			else { continue; }
+			if (clients[i].available() <= 0) { continue; }
 
-					// read all data
-					writePosns[i] = clients[i].read((uint8_t*) (messageBuffer[i] + writePosns[i]), MAX_MESSAGE_SIZE - writePosns[i] - 1); // -1: don't forget null terminator!
-					
-					// scan newly read data for LF
-					for (; endMsg < writePosns[i]; endMsg++) {
-						// found complete message
-						if (messageBuffer[i][endMsg] == '\n') {
-							messageBuffer[i][endMsg] = '\0';
-							// parse and process it
-							if (parseMessage(command, messageBuffer[i] + startMsg, responseBuffer)) {
-								processor(command, responseBuffer);
-								retVal++;
-							}
-							else { retVal += 16; } // invalid message - increment high-order nibble of retVal
+			uint8_t startMsg = 0;
+			uint8_t endMsg = writePosns[i];
 
-							// print response (or just line if none)
-							if (responseBuffer[0]) { clients[i].println(responseBuffer); }
-							else { clients[i].println(); }
-							wipeBuffer(messageBuffer[i] + startMsg, endMsg - startMsg);
-							wipeBuffer(responseBuffer, MAX_MESSAGE_SIZE);
-							startMsg = endMsg + 1;
-						}
+			// read all data
+			writePosns[i] += clients[i].read((uint8_t*) (messageBuffer[i] + writePosns[i]), MAX_MESSAGE_SIZE - writePosns[i] - 1); // -1: don't forget null terminator!
+			// scan newly read data for LF
+			for (; endMsg < writePosns[i]; endMsg++) {
+				// found complete message
+				if (messageBuffer[i][endMsg] == '\n') {
+					messageBuffer[i][endMsg] = '\0';
+					// parse and process it
+					if (parseMessage(command, messageBuffer[i] + startMsg, responseBuffer)) {
+						processor(command, responseBuffer);
+						retVal++;
 					}
+					else { retVal += 16; } // invalid message - increment high-order nibble of retVal
 
-					if (startMsg == 0 && writePosns[i] + 1 == MAX_MESSAGE_SIZE) {
-						// ERROR: client is overflowing the buffer. Yell at them and clear the buffer
-						// TODO: reset startMsg, endMsg and maybe writePosns[i]
-						retVal += 16;
-						wipeBuffer(messageBuffer[i], MAX_MESSAGE_SIZE);
-						strcpy_P(responseBuffer, ParseError_Overflow);
-						clients[i].println(responseBuffer);
-						wipeBuffer(responseBuffer, MAX_MESSAGE_SIZE);
-					}
-					writePosns[i] -= startMsg;
-					// shift the message(s) left so the first one starts at index 0
-					for (uint8_t j = 0; j <= endMsg - startMsg; j++) {
-						messageBuffer[i][j] = messageBuffer[i][startMsg++];
-					}
+					// print response (or just empty line if none)
+					if (responseBuffer[0]) { clients[i].println(responseBuffer); }
+					else { clients[i].println(); }
+					wipeBuffer(messageBuffer[i] + startMsg, endMsg - startMsg);
+					wipeBuffer(responseBuffer, MAX_MESSAGE_SIZE);
+					startMsg = endMsg + 1;
+				}
+			}
+
+			if (startMsg == 0 && writePosns[i] + 1 == MAX_MESSAGE_SIZE) {
+				// ERROR: client is overflowing the buffer. Yell at them and clear the buffer
+				retVal += 16;
+				wipeBuffer(messageBuffer[i], MAX_MESSAGE_SIZE);
+				writePosns[i] = 0;
+				strcpy_P(responseBuffer, ParseError_Overflow);
+				clients[i].println(responseBuffer);
+				wipeBuffer(responseBuffer, MAX_MESSAGE_SIZE);
+			}
+			else {
+				writePosns[i] -= startMsg;
+				// shift the message(s) left so the first one starts at index 0
+				for (uint8_t j = 0; j <= endMsg - startMsg; j++) {
+					messageBuffer[i][j] = messageBuffer[i][startMsg + j];
 				}
 			}
 		}
@@ -236,9 +237,9 @@ namespace EthernetApi {
 		// used to hold sscanf matches
 		char data[20] = {0};
 		uint32_t longData = 0;
+		int16_t charsRead = 0;
 		uint16_t intData = 0;
 		uint8_t byteData = 0;
-		uint8_t charsRead = 0;
 
 		if (!strncmp_P(message, Estop_STR, Estop_STR_LEN)) {
 			command.type = CommandType::Estop;
@@ -271,9 +272,23 @@ namespace EthernetApi {
 				return false;
 			}
 		}
-		else if (sscanf_P(message, GetState_FMT_STR, data, &charsRead) == 1) {
+		else if (sscanf_P(message, GetState_FMT_STR, data) == 1) {
 			command.type = CommandType::GetState;
-			if (sscanf_P(message, GetState_Configuration_FMT_STR, data) == 1) {
+			if (!strncmp_P(message, GetState_Mode_STR, GetState_Mode_STR_LEN)) {
+				command.data.query.type = QueryType::Mode;
+				return true;
+			}
+			else if (resetCount(&charsRead) && (sscanf_P(message, GetState_Tiller_FMT_STR, &byteData, &charsRead) == 1) && charsRead) {
+				command.data.query.type = QueryType::Tiller;
+				command.data.query.value = byteData;
+				return true;
+			}
+			else if (resetCount(&charsRead) && (sscanf_P(message, GetState_Sprayer_FMT_STR, &byteData, &charsRead) == 1) && charsRead) {
+				command.data.query.type = QueryType::Sprayer;
+				command.data.query.value = byteData;
+				return true;
+			}
+			else if (resetCount(&charsRead) && (sscanf_P(message, GetState_Configuration_FMT_STR, data, &charsRead) == 1) && charsRead) {
 				command.data.query.type = QueryType::Configuration;
 				Setting setting;
 				if (parseSetting(setting, data)) {
@@ -285,16 +300,6 @@ namespace EthernetApi {
 					strcat(response, data);
 					return false;
 				}
-			}
-			else if (sscanf_P(message, GetState_Tiller_FMT_STR, &byteData) == 1) {
-				command.data.query.type = QueryType::Tiller;
-				command.data.query.value = byteData;
-				return true;
-			}
-			else if (sscanf_P(message, GetState_Sprayer_FMT_STR, &byteData) == 1) {
-				command.data.query.type = QueryType::Sprayer;
-				command.data.query.value = byteData;
-				return true;
 			}
 			else if (!strncmp_P(message, GetState_Hitch_STR, GetState_Hitch_STR_LEN)) {
 				command.data.query.type = QueryType::Hitch;
@@ -321,10 +326,10 @@ namespace EthernetApi {
 		// the second, and that there is a null terminator between the two.
 		else if (sscanf_P(message, DiagSet_FMT_STR, data, data + 12) == 2) {
 			command.type = CommandType::DiagSet;
-			if (sscanf_P(message, DiagSet_Tiller_FMT_STR, &byteData) == 1) {
+			if (resetCount(&charsRead) && (sscanf_P(message, DiagSet_Tiller_FMT_STR, &byteData, &charsRead) == 1) && charsRead) {
 				command.data.diag.type = PeripheralType::Tiller;
 				command.data.diag.id = byteData;
-				if (!strcmp(data + 12, STOP_STR)) {
+				if (!strcmp_P(data + 12, STOP_STR)) {
 					command.data.diag.value = agbot::Tiller::STOP;
 					return true;
 				}
@@ -337,14 +342,14 @@ namespace EthernetApi {
 					return false;	
 				}
 			}
-			else if (sscanf_P(message, DiagSet_Sprayer_FMT_STR, &byteData) == 1) {
+			else if (resetCount(&charsRead) && (sscanf_P(message, DiagSet_Sprayer_FMT_STR, &byteData, &charsRead) == 1) && charsRead) {
 				command.data.diag.type = PeripheralType::Sprayer;
 				command.data.diag.id = byteData;
-				if (!strcmp(data + 12, ON_STR)) {
+				if (!strcmp_P(data + 12, ON_STR)) {
 					command.data.diag.value = Sprayer::ON;
 					return true;
 				}
-				else if (!strcmp(data + 12, OFF_STR)) {
+				else if (!strcmp_P(data + 12, OFF_STR)) {
 					command.data.diag.value = Sprayer::OFF;
 					return true;
 				}
@@ -355,7 +360,7 @@ namespace EthernetApi {
 			}
 			else if (!strcmp_P(data, Hitch_STR)) {
 				command.data.diag.type = PeripheralType::Hitch;
-				if (!strcmp, data + 12, STOP_STR) {
+				if (!strcmp_P(data + 12, STOP_STR)) {
 					command.data.diag.value = Hitch::STOP;
 					return true;
 				}
@@ -386,6 +391,10 @@ namespace EthernetApi {
 			return false;
 		}
 	}
+
+	// helper function returns true so it can be chained in an if statement like this:
+	// if (resetValue(&charsRead) && sscanf_P(message, FMT, args, &charsRead) && charsRead) {...}
+	static inline bool resetCount(int* i) { *i = 0; return true; }
 
 	static inline void wipeBuffer(char* str, size_t size) { memset(str, 0, size); }
 }

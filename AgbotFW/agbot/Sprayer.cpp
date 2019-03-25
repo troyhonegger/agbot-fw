@@ -15,7 +15,7 @@ namespace agbot {
 		state = ((id & 7) << 3) | static_cast<uint8_t>(SprayerState::Unset);
 		onTime = offTime = millis();
 		*config; // dereference seg faults if null
-		Sprayer::config = config;
+		this->config = config;
 		pinMode(getPin(), OUTPUT);
 		digitalWrite(getPin(), OFF_VOLTAGE);
 	}

@@ -47,11 +47,11 @@ namespace agbot {
 			static const uint8_t MAX_HEIGHT = 100;
 			static const uint8_t STOP = 255;
 		private:
-			static const uint8_t ON_VOLTAGE = HIGH;
-			static const uint8_t OFF_VOLTAGE = LOW;
-			static const uint8_t RAISE_PIN = 0; // TODO: set
-			static const uint8_t LOWER_PIN = 1; // TODO: set
-			static const uint8_t HEIGHT_SENSOR_PIN = PIN_A0; // TODO: set
+			static const uint8_t ON_VOLTAGE = LOW; // TODO: toggle this if hitch is active high
+			static const uint8_t OFF_VOLTAGE = HIGH; // TODO: toggle this if hitch is active high
+			static const uint8_t RAISE_PIN = 9; // TODO: set this value
+			static const uint8_t LOWER_PIN = 8; // TODO: set this value
+			static const uint8_t HEIGHT_SENSOR_PIN = PIN_A2; // TODO: set this value
 
 			Config const* config;
 			uint8_t targetHeight;
@@ -81,7 +81,7 @@ namespace agbot {
 			inline int8_t getDH() const { return dh; }
 
 			// Tells the hitch to try and reach the given height. Acceptable values are 0-100, or Hitch::STOP.
-			inline void setTargetHeight(uint8_t targetHeight) { Hitch::targetHeight = targetHeight; }
+			inline void setTargetHeight(uint8_t targetHeight) { this->targetHeight = targetHeight; }
 			// Tells the hitch to stop if it hasn't already. Equivalent to setTargetHeight(Hitch::STOP);
 			inline void stop() { setTargetHeight(STOP); }
 			// Tells the hitch to raise to a height given by the configuration.

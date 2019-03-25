@@ -30,6 +30,21 @@ unsigned long lastKeepAliveTime;
 
 #ifndef DEMO_MODE
 
+/*
+ * TODO: before running this sketch, verify the following constants are set to the correct values:
+ * 1. In EthernetApi::begin - set MAC address of Ethernet shield
+ *		If the shield doesn't have a MAC address, the current value (12:34:56:78:9A:BC) should work, but remember not to re-use the same address!
+ * 2. In Tiller::getHeightSensorPin(), Tiller::getRaisePin(), Tiller::getLowerPin() - map the pins by sprayer ID
+ * 3. In Sprayer::getPin() - map the pins by sprayer ID
+ * 4. Hitch::RAISE_PIN, Hitch::LOWER_PIN, and Hitch::HEIGHT_SENSOR_PIN - map the pins
+ * 5. Tiller::OFF_VOLTAGE and Tiller::ON_VOLTAGE - set tillers active high or active low
+ * 6. Sprayer::OFF_VOLTAGE and Sprayer::ON_VOLTAGE - set sprayers active high or active low
+ * 7. Hitch::OFF_VOLTAGE and Hitch::ON_VOLTAGE - set hitch active high or active low
+ * 8. Estop::HW_PIN (and possibly Estop::PULSE_LEN) - set to the correct value(s)
+ * 9. EthernetApi::MAX_CLIENTS - currently set to 8 in expectation of a W5500 board. if we use a W5100 board, it should be 4
+ *		Leaving it at 8 will waste a lot of memory but shouldn't hurt anything
+*/
+
 void setup() {
 	config.begin();
 	estop.begin();
@@ -70,7 +85,7 @@ void messageProcessor(EthernetApi::Command const& command, char* response) {
 				}
 				// line up the weed/corn data from the sprayers into a bitfield where each bit lines
 				// up with the corresponding sprayer. Then check each bit and schedule as needed.
-				uint8_t sprayerData = (command.data.process[0] >> 4) | command.data.process[1];
+				uint8_t sprayerData = (command.data.process[1] >> 4) | (command.data.process[2] & 0xF0);
 				for (int i = 0; i < 8; i++) {
 					if (sprayerData & (1 << i)) { sprayers[i].scheduleSpray(); }
 				}
@@ -92,17 +107,17 @@ void messageProcessor(EthernetApi::Command const& command, char* response) {
 						EthernetApi::MAX_MESSAGE_SIZE);
 					break;
 				case EthernetApi::QueryType::Configuration:
-					snprintf_P(response, EthernetApi::MAX_MESSAGE_SIZE, "%ud", config.get(static_cast<Setting>(command.data.query.value)));
+					snprintf(response, EthernetApi::MAX_MESSAGE_SIZE, "%u", config.get(static_cast<Setting>(command.data.query.value)));
 					break;
 				case EthernetApi::QueryType::Tiller:
 					if (command.data.query.value >= Tiller::COUNT) {
-						snprintf(response, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Tiller::COUNT - 1);
+						snprintf_P(response, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Tiller::COUNT - 1);
 					}
 					else { tillers[command.data.query.value].serialize(response, EthernetApi::MAX_MESSAGE_SIZE); }
 					break;
 				case EthernetApi::QueryType::Sprayer:
 					if (command.data.query.value >= Sprayer::COUNT) {
-						snprintf(response, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Sprayer::COUNT - 1);
+						snprintf_P(response, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Sprayer::COUNT - 1);
 					}
 					else { sprayers[command.data.query.value].serialize(response, EthernetApi::MAX_MESSAGE_SIZE); }
 					break;

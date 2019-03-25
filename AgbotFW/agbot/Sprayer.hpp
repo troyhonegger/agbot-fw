@@ -45,8 +45,8 @@ namespace agbot {
 			static const bool ON = true;
 			static const bool OFF = false;
 		private:
-			static const uint8_t ON_VOLTAGE = LOW;
-			static const uint8_t OFF_VOLTAGE = HIGH;
+			static const uint8_t ON_VOLTAGE = LOW; // TODO: toggle this if sprayers are active high
+			static const uint8_t OFF_VOLTAGE = HIGH; // TODO: toggle this if sprayers are active high
 
 			unsigned long onTime; // If state is SprayerState::ProcessScheduled, sprayer must be on by this time
 			unsigned long offTime; // If state is SprayerState::ProcessOn, sprayer must be off by this time
@@ -54,7 +54,7 @@ namespace agbot {
 			// To save space, encodes SprayerState in least significant 3 bits, ID in next 3, desired status (on/off) in next bit, actual status in MSB
 			uint8_t state;
 
-			inline void setState(SprayerState state) { Sprayer::state = (Sprayer::state & 0xF8) | static_cast<uint8_t>(state); }
+			inline void setState(SprayerState state) { this->state = (this->state & 0xF8) | static_cast<uint8_t>(state); }
 
 			// Note the somewhat confusingly named functions here. writeStatus() sets the "actual status" and performs a GPIO write if necessary.
 			// setDesiredStatus() merely flips the bit indicating whether the spray should be on - this bit is checked in update() and writeStatus()
@@ -70,7 +70,7 @@ namespace agbot {
 			// status get out of sync, update() will toggle the actual status.
 			void setDesiredStatus(bool status);
 			inline bool getDesiredStatus() const { return state & 0x40 ? ON : OFF; }
-			inline uint8_t getPin() const { return getId() + 9; }
+			inline uint8_t getPin() const { return getId() + 9; } // TODO: assign the sprayer pins here by sprayer ID
 
 			// disallow copy constructor since Sprayer interacts with hardware, so duplicate instances are a bad idea
 			void operator=(Sprayer const&) {}

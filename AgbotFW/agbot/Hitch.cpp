@@ -11,8 +11,8 @@
 #include "Config.hpp"
 #include "Hitch.hpp"
 
-static const char HITCH_FMT_STR[] PROGMEM = "{\"height\":%hhud,\"dh\":%hhd,\"target\":%hhud";
-static const char HITCH_STOPPED_FMT_STR[] PROGMEM = "{\"height\":%hhud,\"dh\":%hhd,\"target\":\"STOP\"}";
+static const char HITCH_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hhd,\"target\":%hhu}";
+static const char HITCH_STOPPED_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hhd,\"target\":\"STOP\"}";
 
 namespace agbot {
 	inline uint8_t Hitch::getActualHeight() const {
@@ -54,7 +54,7 @@ namespace agbot {
 		}
 	}
 
-	bool Hitch::needsUpdate() const { return getNewDH() == dh; }
+	bool Hitch::needsUpdate() const { return getNewDH() != dh; }
 
 	void Hitch::update() {
 		int8_t newDh = getNewDH();
@@ -63,17 +63,17 @@ namespace agbot {
 			dh = newDh;
 			switch (newDh) {
 				case -1:
-				digitalWrite(RAISE_PIN, OFF_VOLTAGE);
-				digitalWrite(LOWER_PIN, ON_VOLTAGE);
-				break;
+					digitalWrite(RAISE_PIN, OFF_VOLTAGE);
+					digitalWrite(LOWER_PIN, ON_VOLTAGE);
+					break;
 				case 0:
-				digitalWrite(RAISE_PIN, OFF_VOLTAGE);
-				digitalWrite(LOWER_PIN, ON_VOLTAGE);
-				break;
+					digitalWrite(RAISE_PIN, OFF_VOLTAGE);
+					digitalWrite(LOWER_PIN, OFF_VOLTAGE);
+					break;
 				case 1:
-				digitalWrite(LOWER_PIN, OFF_VOLTAGE);
-				digitalWrite(RAISE_PIN, ON_VOLTAGE);
-				break;
+					digitalWrite(LOWER_PIN, OFF_VOLTAGE);
+					digitalWrite(RAISE_PIN, ON_VOLTAGE);
+					break;
 			}
 		}
 	}
