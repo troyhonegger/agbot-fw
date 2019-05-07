@@ -84,8 +84,8 @@ namespace agbot {
 		}
 	}
 
-	void Sprayer::stop(bool now) {
-		setDesiredStatus(OFF);
+	void Sprayer::stop(bool now, bool temporary) {
+		if (!temporary) { setDesiredStatus(OFF); }
 		if (now) { writeStatus(OFF); }
 	}
 

@@ -11,6 +11,12 @@
 // Comment this line to run the "production" code; un-comment to run "TillAndSprayDemo.cpp"
 //#define DEMO_MODE
 
+// Comment this line to use a static IP address of 10.0.0.2; un-comment to use DHCP
+//#define DHCP
+
+// Comment this line for production; un-comment it to enable serial communication
+#define SERIAL_DEBUG
+
 namespace agbot {
 	enum class MachineMode : uint8_t {
 		Unset = 0, Process = 1, Diag = 2

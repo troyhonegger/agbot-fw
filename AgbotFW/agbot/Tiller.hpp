@@ -105,7 +105,9 @@ namespace agbot {
 			// the tiller actually stops, you can call stop(true) instead, which, rather than scheduling a stop for the next update(),
 			// actually performs the GPIO work to do it immediately, thus overriding any scheduled operations. Note that even then, the
 			// next time you call update() the stop command can still be overridden.
-			void stop(bool now = false);
+			// Calling stop(true) also updates the tiller's target height to STOP. To avoid this, set temporary to true. This leaves the
+			// state unchanged, so the next call to update() will result in the correct operation.
+			void stop(bool now = false, bool temporary = false);
 
 			// Signals to the tiller that a weed has been sighted up ahead and the tiller should begin lowering at some point in the future.
 			// The exact time is computed from the configuration settings. This command should be issued for every weed that is sighted,

@@ -115,7 +115,9 @@ namespace agbot {
 			// you can call stop(true) instead, which, rather than scheduling a stop for the next update(), actually performs the GPIO
 			// thus overriding any scheduled events. Note that even then, the next time you call update() the stop command can still
 			// be overridden.
-			void stop(bool now = false);
+			// Calling stop(true) also updates the sprayer's target height to STOP. To avoid this, set temporary to true. This leaves the
+			// state unchanged, so the next call to update() will result in the correct operation.
+			void stop(bool now = false, bool temporary = false);
 
 			// Tells the sprayer to turn ON or OFF. This is valid only in diagnostics mode
 			void setStatus(bool status);

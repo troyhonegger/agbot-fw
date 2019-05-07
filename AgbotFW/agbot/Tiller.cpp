@@ -69,8 +69,8 @@ namespace agbot {
 		}
 	}
 	
-	void Tiller::stop(bool now) {
-		targetHeight = STOP;
+	void Tiller::stop(bool now, bool temporary) {
+		if (!temporary) { targetHeight = STOP; }
 		if (now && getDH()) {
 			setDH(0);
 			digitalWrite(getRaisePin(), OFF_VOLTAGE);

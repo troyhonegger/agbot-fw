@@ -15,7 +15,7 @@ static const char HITCH_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hhd,\"targ
 static const char HITCH_STOPPED_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hhd,\"target\":\"STOP\"}";
 
 namespace agbot {
-	inline uint8_t Hitch::getActualHeight() const {
+	uint8_t Hitch::getActualHeight() const {
 		actualHeight = map(analogRead(HEIGHT_SENSOR_PIN), 0, 1023, 0, MAX_HEIGHT);
 		return actualHeight;
 	}
@@ -32,6 +32,7 @@ namespace agbot {
 	}
 
 	int8_t Hitch::getNewDH() const {
+		getActualHeight(); // update actual height
 		// The following applies a sort of software hysteresis to the control logic.
 		// If |target - initial| <= accuracy / 2, the hitch must be stoppped;
 		// if |target - initial| > accuracy, the hitch must be started;
@@ -39,7 +40,6 @@ namespace agbot {
 		// previous state, unless doing so would push it further away from the target height
 		if (targetHeight == STOP) { return 0; }
 		
-		getActualHeight(); // update actual height
 		uint16_t accuracy = config->get(Setting::HitchAccuracy);
 
 		if (targetHeight > actualHeight) {
@@ -51,6 +51,9 @@ namespace agbot {
 			if (actualHeight - targetHeight > accuracy) { return -1; }
 			else if (actualHeight - targetHeight <= (accuracy / 2)) { return 0; }
 			else { return getDH() == -1 ? -1 : 0; }
+		}
+		else /* targetHeight == actualHeight */ {
+			return 0;
 		}
 	}
 

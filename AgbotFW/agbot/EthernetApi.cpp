@@ -95,8 +95,12 @@ namespace EthernetApi {
 	void begin() {
 		// Note: if using a different Ethernet shield, change this to the value of that shield
 		uint8_t mac[6] = { 0xA8, 0x61, 0x0A, 0xAE, 0x11, 0xF6 };
+		#ifdef DHCP
+		Ethernet.begin(mac);
+		#else
 		uint8_t controllerIP[4] = { 10, 0, 0, 2 };
 		Ethernet.begin(mac, controllerIP);
+		#endif
 		// adjust these two settings to taste
 		Ethernet.setRetransmissionCount(3);
 		Ethernet.setRetransmissionTimeout(150);
@@ -139,6 +143,9 @@ namespace EthernetApi {
 			writePosns[i] += clients[i].read((uint8_t*) (messageBuffer[i] + writePosns[i]), MAX_MESSAGE_SIZE - writePosns[i] - 1); // -1: don't forget null terminator!
 			// scan newly read data for LF
 			for (; endMsg < writePosns[i]; endMsg++) {
+				// TODO: for some reason, sending a blank line all by itself throws off the buffers and/or writePosns[i], and the only way to fix it is to
+				// disconnect and reconnect. It shouldn't be a huge issue, but it's something to keep in mind
+
 				// found complete message
 				if (messageBuffer[i][endMsg] == '\n') {
 					messageBuffer[i][endMsg] = '\0';
@@ -385,7 +392,7 @@ namespace EthernetApi {
 			return true;
 		}
 		else if (!strncmp_P(message, ProcessLowerHitch_STR, ProcessLowerHitch_STR_LEN)) {
-			command.type == CommandType::ProcessLowerHitch;
+			command.type = CommandType::ProcessLowerHitch;
 			return true;
 		}
 		else {

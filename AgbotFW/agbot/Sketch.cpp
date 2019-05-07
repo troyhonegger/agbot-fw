@@ -1,5 +1,6 @@
 ﻿#include <Arduino.h>
 
+#include "Common.hpp"
 #include "Config.hpp"
 #include "EthernetApi.hpp"
 #include "Estop.hpp"
@@ -45,6 +46,11 @@ void setup() {
 	}
 	EthernetApi::begin();
 	lastKeepAliveTime = millis();
+	
+	#ifdef SERIAL_DEBUG
+	Serial.begin(9600);
+	Serial.println("Serial debug mode ON");
+	#endif
 }
 
 void messageProcessor(EthernetApi::Command const& command, char* response) {
@@ -170,12 +176,12 @@ void loop() {
 		lastKeepAliveTime = millis(); // wait another timeout length before firing estop again - once was enough
 		estop.engage();
 	}
-
+	//hitch.getActualHeight();
 	estop.update();
 	bool hitchNeedsUpdate = hitch.needsUpdate();
 	if (hitchNeedsUpdate || hitch.getDH()) {
-		for (uint8_t i = 0; i < Tiller::COUNT; i++) { tillers[i].stop(true); }
-		for (uint8_t i = 0; i < Sprayer::COUNT; i++) { sprayers[i].stop(true); }
+		for (uint8_t i = 0; i < Tiller::COUNT; i++) { tillers[i].stop(true, true); }
+		for (uint8_t i = 0; i < Sprayer::COUNT; i++) { sprayers[i].stop(true, true); }
 		if (hitchNeedsUpdate) { hitch.update(); }
 	}
 	if (!hitch.getDH()) {

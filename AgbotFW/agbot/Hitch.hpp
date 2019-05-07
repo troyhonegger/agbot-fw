@@ -51,11 +51,11 @@ namespace agbot {
 			static const uint8_t OFF_VOLTAGE = !ON_VOLTAGE;
 			static const uint8_t RAISE_PIN = 26;
 			static const uint8_t LOWER_PIN = 27;
-			static const uint8_t HEIGHT_SENSOR_PIN = PIN_A8;
+			static const uint8_t HEIGHT_SENSOR_PIN = PIN_A15;
 
 			Config const* config;
 			uint8_t targetHeight;
-			mutable uint8_t actualHeight;
+			volatile mutable uint8_t actualHeight;
 			int8_t dh;
 
 			// Computes the difference between target and actual heights, and returns the direction the hitch
