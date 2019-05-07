@@ -25,7 +25,7 @@
 namespace agbot{
 	class Estop {
 		private:
-			static const uint8_t HW_PIN = 0; // TODO: set this value
+			static const uint8_t HW_PIN = 22;
 			static const uint16_t PULSE_LEN = 100;
 			
 			unsigned long whenEngaged;

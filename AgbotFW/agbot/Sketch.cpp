@@ -30,20 +30,8 @@ unsigned long lastKeepAliveTime;
 
 #ifndef DEMO_MODE
 
-/*
- * TODO: before running this sketch, verify the following constants are set to the correct values:
- * 1. In EthernetApi::begin - set MAC address of Ethernet shield
- *		If the shield doesn't have a MAC address, the current value (12:34:56:78:9A:BC) should work, but remember not to re-use the same address!
- * 2. In Tiller::getHeightSensorPin(), Tiller::getRaisePin(), Tiller::getLowerPin() - map the pins by sprayer ID
- * 3. In Sprayer::getPin() - map the pins by sprayer ID
- * 4. Hitch::RAISE_PIN, Hitch::LOWER_PIN, and Hitch::HEIGHT_SENSOR_PIN - map the pins
- * 5. Tiller::OFF_VOLTAGE and Tiller::ON_VOLTAGE - set tillers active high or active low
- * 6. Sprayer::OFF_VOLTAGE and Sprayer::ON_VOLTAGE - set sprayers active high or active low
- * 7. Hitch::OFF_VOLTAGE and Hitch::ON_VOLTAGE - set hitch active high or active low
- * 8. Estop::HW_PIN (and possibly Estop::PULSE_LEN) - set to the correct value(s)
- * 9. EthernetApi::MAX_CLIENTS - currently set to 8 in expectation of a W5500 board. if we use a W5100 board, it should be 4
- *		Leaving it at 8 will waste a lot of memory but shouldn't hurt anything
-*/
+// TODO: before running this sketch, Tiller::ON_VOLTAGE, Sprayer::ON_VOLTAGE, and Hitch::ON_VOLTAGE
+// to make the peripherals active high or active low to match the hardware.
 
 void setup() {
 	config.begin();
@@ -179,6 +167,7 @@ void loop() {
 	EthernetApi::read(messageProcessor);
 	
 	if (isElapsed(lastKeepAliveTime + config.get(Setting::KeepAliveTimeout))) {
+		lastKeepAliveTime = millis(); // wait another timeout length before firing estop again - once was enough
 		estop.engage();
 	}
 

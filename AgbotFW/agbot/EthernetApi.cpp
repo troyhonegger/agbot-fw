@@ -93,7 +93,8 @@ static const char ParseError_HitchDiag[] PROGMEM = "PARSE ERROR: Hitch value mus
 namespace agbot{
 namespace EthernetApi {
 	void begin() {
-		uint8_t mac[6] = { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC }; // TODO: fill this in
+		// Note: if using a different Ethernet shield, change this to the value of that shield
+		uint8_t mac[6] = { 0xA8, 0x61, 0x0A, 0xAE, 0x11, 0xF6 };
 		uint8_t controllerIP[4] = { 10, 0, 0, 2 };
 		Ethernet.begin(mac, controllerIP);
 		// adjust these two settings to taste
@@ -108,15 +109,16 @@ namespace EthernetApi {
 	static void wipeBuffer(char*, size_t);
 
 	uint8_t read(void (*processor)(agbot::EthernetApi::Command const&, char*)) {
-		EthernetClient newClient = server.accept();
-
-		// check for new clients
-		if (newClient) {
-			for (uint8_t i = 0; i < MAX_CLIENTS; i++) {
-				if (!clients[i]) {
-					clients[i] = newClient;
-					numClients++;
-					break;
+		// check for new clients, if we have space for them (otherwise, ignore them)
+		if (numClients < MAX_CLIENTS) {
+			EthernetClient newClient = server.accept();
+			if (newClient) {
+				for (uint8_t i = 0; i < MAX_CLIENTS; i++) {
+					if (!clients[i]) {
+						clients[i] = newClient;
+						numClients++;
+						break;
+					}
 				}
 			}
 		}

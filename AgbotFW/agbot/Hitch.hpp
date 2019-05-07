@@ -48,10 +48,10 @@ namespace agbot {
 			static const uint8_t STOP = 255;
 		private:
 			static const uint8_t ON_VOLTAGE = LOW; // TODO: toggle this if hitch is active high
-			static const uint8_t OFF_VOLTAGE = HIGH; // TODO: toggle this if hitch is active high
-			static const uint8_t RAISE_PIN = 9; // TODO: set this value
-			static const uint8_t LOWER_PIN = 8; // TODO: set this value
-			static const uint8_t HEIGHT_SENSOR_PIN = PIN_A2; // TODO: set this value
+			static const uint8_t OFF_VOLTAGE = !ON_VOLTAGE;
+			static const uint8_t RAISE_PIN = 26;
+			static const uint8_t LOWER_PIN = 27;
+			static const uint8_t HEIGHT_SENSOR_PIN = PIN_A8;
 
 			Config const* config;
 			uint8_t targetHeight;

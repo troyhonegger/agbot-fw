@@ -46,7 +46,7 @@ namespace agbot {
 			static const bool OFF = false;
 		private:
 			static const uint8_t ON_VOLTAGE = LOW; // TODO: toggle this if sprayers are active high
-			static const uint8_t OFF_VOLTAGE = HIGH; // TODO: toggle this if sprayers are active high
+			static const uint8_t OFF_VOLTAGE = !ON_VOLTAGE;
 
 			unsigned long onTime; // If state is SprayerState::ProcessScheduled, sprayer must be on by this time
 			unsigned long offTime; // If state is SprayerState::ProcessOn, sprayer must be off by this time
@@ -70,7 +70,7 @@ namespace agbot {
 			// status get out of sync, update() will toggle the actual status.
 			void setDesiredStatus(bool status);
 			inline bool getDesiredStatus() const { return state & 0x40 ? ON : OFF; }
-			inline uint8_t getPin() const { return getId() + 9; } // TODO: assign the sprayer pins here by sprayer ID
+			inline uint8_t getPin() const { return getId() + 38; }
 
 			// disallow copy constructor since Sprayer interacts with hardware, so duplicate instances are a bad idea
 			void operator=(Sprayer const&) {}

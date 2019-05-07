@@ -16,7 +16,7 @@
 
 namespace agbot {
 	const size_t SETTING_SIZE = sizeof(uint16_t);
-	const uint8_t NUM_SETTINGS = 10;
+	const uint8_t NUM_SETTINGS = 11;
 
 	enum class Setting : uint8_t {
 		// The length of time, in milliseconds, the tiller will be lowered or the sprayer will be on to eliminate a single weed.
@@ -52,7 +52,7 @@ namespace agbot {
 		private:
 			// Note: if memory becomes an issue we can save 6 bytes here (at some maintainability cost) by packing the 1-byte settings
 			// together instead of allocating 2 bytes for everything.
-			uint16_t settings[11];
+			uint16_t settings[NUM_SETTINGS];
 
 			// disallow copy constructor
 			void operator=(Config const&) {}
