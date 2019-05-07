@@ -5,6 +5,12 @@
  * This is because the hitch has no need for scheduling - it can be told to raise NOW, or to lower NOW, or to stop NOW, and it
  * will do so.
  * 
+ * The Hitch class also encapsulates the clutch for the roto-tillers. When the hitch is lowered, the clutch will disengage and allow
+ * the tillers to rotate. When the hitch is raised, the clutch will automatically disengage, and the tillers will stop. It may be
+ * worthwhile to move the clutch to its own separate module, but unfortunately at the time of writing there will be no time for that.
+ * As it stands, there is a safety argument to keeping it encapsulated, though it makes the two peripherals more tightly coupled
+ * for diagnostics.
+ * 
  * The hitch class breaks from C++ RAII pattern, since it needs to be initialized as a global variable, and the initialization
  * logic for a hitch depends on the completion of certain hardware setup that occurs in the Arduino library's main() method.
  * Accordingly, you must call begin() on the hitch (typically in the setup() function) before using it.
@@ -52,6 +58,9 @@ namespace agbot {
 			static const uint8_t RAISE_PIN = 26;
 			static const uint8_t LOWER_PIN = 27;
 			static const uint8_t HEIGHT_SENSOR_PIN = PIN_A15;
+			static const uint8_t CLUTCH_ON_VOLTAGE = LOW; // TODO: toggle this if clutch is active high
+			static const uint8_t CLUTCH_OFF_VOLTAGE = HIGH;
+			static const uint8_t CLUTCH_PIN = 25;
 
 			Config const* config;
 			uint8_t targetHeight;
@@ -62,6 +71,10 @@ namespace agbot {
 			// would be moving if update() were called. There is some I/O overhead associated with this, so a
 			// calling function should cache the value where possible rather than calling it twice.
 			int8_t getNewDH() const;
+
+			// Updates the state of the clutch. The clutch is engaged if the hitch is not lowered OR if it is moving.
+			// It is disengaged if and only if the hitch is lowered AND neither raising nor lowering.
+			void updateClutch();
 		public:
 			// Creates a new hitch object. Until begin() is called, any other member functions are still undefined.
 			Hitch() : config(nullptr), targetHeight(STOP), actualHeight(MAX_HEIGHT), dh(0) {  }

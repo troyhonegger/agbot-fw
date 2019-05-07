@@ -29,6 +29,7 @@ namespace agbot {
 		pinMode(HEIGHT_SENSOR_PIN, INPUT);
 		targetHeight = STOP;
 		dh = 0;
+		updateClutch();
 	}
 
 	int8_t Hitch::getNewDH() const {
@@ -52,7 +53,7 @@ namespace agbot {
 			else if (actualHeight - targetHeight <= (accuracy / 2)) { return 0; }
 			else { return getDH() == -1 ? -1 : 0; }
 		}
-		else /* targetHeight == actualHeight */ {
+		else { // targetHeight == actualHeight
 			return 0;
 		}
 	}
@@ -61,7 +62,6 @@ namespace agbot {
 
 	void Hitch::update() {
 		int8_t newDh = getNewDH();
-
 		if (dh != newDh) {
 			dh = newDh;
 			switch (newDh) {
@@ -78,6 +78,22 @@ namespace agbot {
 					digitalWrite(RAISE_PIN, ON_VOLTAGE);
 					break;
 			}
+		}
+		updateClutch();
+	}
+
+	void Hitch::updateClutch() {
+		if (!dh) {
+			int8_t diff = targetHeight < actualHeight ? actualHeight - targetHeight : targetHeight - actualHeight;
+			if (diff < config->get(Setting::HitchAccuracy)) {
+				digitalWrite(CLUTCH_PIN, CLUTCH_OFF_VOLTAGE);
+			}
+			else {
+				digitalWrite(CLUTCH_PIN, CLUTCH_ON_VOLTAGE);
+			}
+		}
+		else {
+			digitalWrite(CLUTCH_PIN, CLUTCH_ON_VOLTAGE);
 		}
 	}
 
