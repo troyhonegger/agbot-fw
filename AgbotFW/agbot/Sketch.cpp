@@ -7,6 +7,7 @@
 #include "Hitch.hpp"
 #include "Tiller.hpp"
 #include "Sprayer.hpp"
+#include "Throttle.hpp"
 
 #include <string.h>
 
@@ -26,6 +27,7 @@ Estop estop;
 Hitch hitch;
 Tiller tillers[Tiller::COUNT];
 Sprayer sprayers[Sprayer::COUNT];
+Throttle throttle;
 MachineMode currentMode = MachineMode::Unset;
 unsigned long lastKeepAliveTime;
 
@@ -44,6 +46,7 @@ void setup() {
 	for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
 		sprayers[i].begin(i, &config);
 	}
+	throttle.begin();
 	EthernetApi::begin();
 	lastKeepAliveTime = millis();
 	
@@ -188,6 +191,14 @@ void loop() {
 		for (uint8_t i = 0; i < Tiller::COUNT; i++) { tillers[i].update(); }
 		for (uint8_t i = 0; i < Sprayer::COUNT; i++) { sprayers[i].update(); }
 	}
+
+	// throttle up if the hitch or any tillers are moving (but NOT if the sprayers or the
+	// clutch are active - they shouldn't suck too much power)
+	int8_t throttleUp = hitch.getDH();
+	for (uint8_t i = 0; i < Tiller::COUNT; i++) { throttleUp |= tillers[i].getDH(); }
+	if (throttleUp) { throttle.up(); }
+	else { throttle.down(); }
+	throttle.update();
 }
 
 #endif // DEMO_MODE
