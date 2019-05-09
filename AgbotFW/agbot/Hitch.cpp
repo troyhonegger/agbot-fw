@@ -16,7 +16,7 @@ static const char HITCH_STOPPED_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hh
 
 namespace agbot {
 	uint8_t Hitch::getActualHeight() const {
-		actualHeight = map(analogRead(HEIGHT_SENSOR_PIN), 0, 1023, 0, MAX_HEIGHT);
+		actualHeight = map(analogRead(HEIGHT_SENSOR_PIN), 1023, 204, 0, MAX_HEIGHT);
 		return actualHeight;
 	}
 
@@ -84,7 +84,8 @@ namespace agbot {
 
 	void Hitch::updateClutch() {
 		if (!dh) {
-			int8_t diff = targetHeight < actualHeight ? actualHeight - targetHeight : targetHeight - actualHeight;
+			uint8_t loweredHeight = config->get(Setting::HitchLoweredHeight);
+			int8_t diff = loweredHeight < actualHeight ? actualHeight - loweredHeight : loweredHeight - actualHeight;
 			if (diff < config->get(Setting::HitchAccuracy)) {
 				digitalWrite(CLUTCH_PIN, CLUTCH_OFF_VOLTAGE);
 			}

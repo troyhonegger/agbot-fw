@@ -44,7 +44,7 @@ namespace agbot {
 			static const uint8_t MAX_HEIGHT = 100;
 			static const uint8_t STOP = 255;
 		private:
-			static const uint8_t ON_VOLTAGE = LOW; // TODO: toggle this if tillers are active high
+			static const uint8_t ON_VOLTAGE = LOW; // TODO: change if active high
 			static const uint8_t OFF_VOLTAGE = !ON_VOLTAGE;
 			unsigned long lowerTime; // If state is TillerState::ProcessScheuled, tiller must begin lowering by this time
 			unsigned long raiseTime; // If state is TillerState::ProcessLowering, tiller must begin raising by this time

@@ -19,7 +19,8 @@ namespace agbot {
 	}
 
 	void Throttle::updateActuatorLength() const {
-		actuatorLength = map(analogRead(SENSOR_PIN), 0, 1023, 0, 100);
+		// TODO: if we put a resistor on here to limit the min voltage to 1V, remember to change this
+		actuatorLength = map(analogRead(SENSOR_PIN), 0, 1024, 0, 100);
 	}
 
 	void Throttle::up() { throttledUp = true; }
@@ -28,7 +29,7 @@ namespace agbot {
 	// returns 0 for stop, 1 for extend, -1 for retract
 	int8_t Throttle::getDesiredDL() const {
 		updateActuatorLength();
-		uint8_t target = throttledUp ? XTD_LEN : RET_LEN;
+		uint8_t target = throttledUp ? RET_LEN : XTD_LEN;
 		// The following applies a sort of software hysteresis to the control logic.
 		// If |target - initial| <= accuracy / 2, the actuator must be stoppped;
 		// if |target - initial| > accuracy, the actuator must be started;

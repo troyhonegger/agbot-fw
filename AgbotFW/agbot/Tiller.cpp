@@ -39,7 +39,7 @@ namespace agbot {
 		pinMode(getLowerPin(), INPUT);
 	}
 
-	inline void Tiller::updateActualHeight() const { actualHeight = map(analogRead(getHeightSensorPin()), 0, 1023, 0, MAX_HEIGHT); }
+	inline void Tiller::updateActualHeight() const { actualHeight = map(analogRead(getHeightSensorPin()), 1023, 204, 0, MAX_HEIGHT); }
 
 	void Tiller::setMode(MachineMode mode) {
 		switch (mode) {

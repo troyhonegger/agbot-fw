@@ -33,9 +33,6 @@ unsigned long lastKeepAliveTime;
 
 #ifndef DEMO_MODE
 
-// TODO: before running this sketch, Tiller::ON_VOLTAGE, Sprayer::ON_VOLTAGE, and Hitch::ON_VOLTAGE
-// to make the peripherals active high or active low to match the hardware.
-
 void setup() {
 	config.begin();
 	estop.begin();

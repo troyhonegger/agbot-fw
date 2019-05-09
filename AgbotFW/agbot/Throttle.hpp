@@ -13,14 +13,14 @@
 namespace agbot {
 	class Throttle {
 		public:
-			static const uint8_t XTD_LEN = 100;
-			static const uint8_t RET_LEN = 0;
-			static const uint8_t XTD_PIN = 0; // TODO
-			static const uint8_t RET_PIN = 0; // TODO
+			static const uint8_t XTD_LEN = 100; // TODO: find through experimentation
+			static const uint8_t RET_LEN = 0; // TODO: find through experimentation
+			static const uint8_t XTD_PIN = 48;
+			static const uint8_t RET_PIN = 49;
 			static const uint8_t SENSOR_PIN = PIN_A14;
 			static const uint8_t ACCURACY = 5; // TODO: re-hardcode if needed (no time to add config option)
 		private:
-			static const uint8_t ON_VOLTAGE = HIGH; // TODO: change if active low
+			static const uint8_t ON_VOLTAGE = LOW; // TODO: change if active high
 			static const uint8_t OFF_VOLTAGE = !ON_VOLTAGE;
 
 			bool throttledUp;
