@@ -28,9 +28,9 @@ namespace agbot {
 		actualHeight = MAX_HEIGHT;
 		this->config = config;
 		pinMode(getRaisePin(), OUTPUT);
-		digitalWrite(getRaisePin(), OFF_VOLTAGE);
+		digitalWrite(getRaisePin(), getOffVoltage());
 		pinMode(getLowerPin(), OUTPUT);
-		digitalWrite(getLowerPin(), OFF_VOLTAGE);
+		digitalWrite(getLowerPin(), getOffVoltage());
 		pinMode(getHeightSensorPin(), INPUT);
 	}
 
@@ -73,8 +73,8 @@ namespace agbot {
 		if (!temporary) { targetHeight = STOP; }
 		if (now && getDH()) {
 			setDH(0);
-			digitalWrite(getRaisePin(), OFF_VOLTAGE);
-			digitalWrite(getLowerPin(), OFF_VOLTAGE);
+			digitalWrite(getRaisePin(), getOffVoltage());
+			digitalWrite(getLowerPin(), getOffVoltage());
 		}
 	}
 
@@ -142,16 +142,16 @@ namespace agbot {
 			setDH(newDh);
 			switch (newDh) {
 				case 0:
-					digitalWrite(getRaisePin(), OFF_VOLTAGE);
-					digitalWrite(getLowerPin(), OFF_VOLTAGE);
+					digitalWrite(getRaisePin(), getOffVoltage());
+					digitalWrite(getLowerPin(), getOffVoltage());
 					break;
 				case 1:
-					digitalWrite(getLowerPin(), OFF_VOLTAGE);
-					digitalWrite(getRaisePin(), ON_VOLTAGE);
+					digitalWrite(getLowerPin(), getOffVoltage());
+					digitalWrite(getRaisePin(), getOnVoltage());
 					break;
 				case -1:
-					digitalWrite(getRaisePin(), OFF_VOLTAGE);
-					digitalWrite(getLowerPin(), ON_VOLTAGE);
+					digitalWrite(getRaisePin(), getOffVoltage());
+					digitalWrite(getLowerPin(), getOnVoltage());
 					break;
 			}
 		}

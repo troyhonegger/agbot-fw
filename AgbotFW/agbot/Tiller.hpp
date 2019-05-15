@@ -44,14 +44,15 @@ namespace agbot {
 			static const uint8_t MAX_HEIGHT = 100;
 			static const uint8_t STOP = 255;
 		private:
-			static const uint8_t ON_VOLTAGE = LOW; // TODO: change if active high
-			static const uint8_t OFF_VOLTAGE = !ON_VOLTAGE;
 			unsigned long lowerTime; // If state is TillerState::ProcessScheuled, tiller must begin lowering by this time
 			unsigned long raiseTime; // If state is TillerState::ProcessLowering, tiller must begin raising by this time
 			Config const* config;
 			uint8_t state; // To save space, encodes TillerState in least significant 4 bits, id in next 2, and dh in next 2
 			uint8_t targetHeight;
 			mutable uint8_t actualHeight;
+
+			inline uint8_t getOnVoltage() const { return getId() == 2 ? LOW : HIGH; } // TODO: change mapping if need be
+			inline uint8_t getOffVoltage() const { return !getOnVoltage(); }
 			inline void setState(TillerState state) { this->state = (this->state & 0xF0) | static_cast<uint8_t>(state); }
 			inline void setDH(int8_t dh) { state = (state & 0x3F) | ((dh & 3) << 6); }
 			
