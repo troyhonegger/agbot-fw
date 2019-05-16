@@ -75,7 +75,7 @@ void messageProcessor(EthernetApi::Command const& command, char* response) {
 			else {
 				// Data corresponding to tillers is in least-significant nibble of each byte
 				for (int i = 0; i < 3; i++) {
-					if (command.data.process[i] & 0x07) { tillers[i].scheduleLower(); }
+					if (command.data.process[i] & 0x0F) { tillers[i].scheduleLower(); }
 				}
 				// line up the weed/corn data from the sprayers into a bitfield where each bit lines
 				// up with the corresponding sprayer. Then check each bit and schedule as needed.
