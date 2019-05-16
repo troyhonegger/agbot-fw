@@ -33,29 +33,10 @@ namespace agbot {
 	}
 
 	int8_t Hitch::getNewDH() const {
-		getActualHeight(); // update actual height
-		// The following applies a sort of software hysteresis to the control logic.
-		// If |target - initial| <= accuracy / 2, the hitch must be stoppped;
-		// if |target - initial| > accuracy, the hitch must be started;
-		// if accuracy / 2 <= |target - initial| < accuracy, the hitch will maintain the
-		// previous state, unless doing so would push it further away from the target height
+		getActualHeight(); // update actual height (not currently used to determine newDH, but updating it at least keeps it between 0 and 100)
 		if (targetHeight == STOP) { return 0; }
-		
-		uint16_t accuracy = config->get(Setting::HitchAccuracy);
-
-		if (targetHeight > actualHeight) {
-			if (targetHeight - actualHeight > accuracy) { return 1; }
-			else if (targetHeight - actualHeight <= (accuracy / 2)) { return 0; }
-			else { return getDH() == 1 ? 1 : 0; }
-		}
-		else if (targetHeight < actualHeight) {
-			if (actualHeight - targetHeight > accuracy) { return -1; }
-			else if (actualHeight - targetHeight <= (accuracy / 2)) { return 0; }
-			else { return getDH() == -1 ? -1 : 0; }
-		}
-		else { // targetHeight == actualHeight
-			return 0;
-		}
+		else if (targetHeight < MAX_HEIGHT / 2) { return -1; }
+		else { return 1; }
 	}
 
 	bool Hitch::needsUpdate() const { return getNewDH() != dh; }

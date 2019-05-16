@@ -118,25 +118,10 @@ namespace agbot {
 		}
 
 		updateActualHeight();
-		int8_t newDh = 0;
-		if (targetHeight != STOP) {
-			// The following applies a sort of software hysteresis to the tiller control logic.
-			// If |target - initial| <= accuracy / 2, the tiller must be stoppped;
-			// if |target - initial| > accuracy, the tiller must be started;
-			// if accuracy / 2 <= |target - initial| < accuracy, the tiller will maintain the
-			// previous state, unless doing so would push it further away from the target height
-			uint16_t accuracy = config->get(Setting::TillerAccuracy);
-			if (targetHeight > actualHeight) {
-				if (targetHeight - actualHeight > accuracy) { newDh = 1; }
-				else if (targetHeight - actualHeight <= (accuracy / 2)) { newDh = 0; }
-				else { newDh = getDH() == 1 ? 1 : 0; }
-			}
-			else if (targetHeight < actualHeight) {
-				if (actualHeight - targetHeight > accuracy) { newDh = -1; }
-				else if (actualHeight - targetHeight <= (accuracy / 2)) { newDh = 0; }
-				else { newDh = getDH() == -1 ? -1 : 0; }
-			}
-		}
+		int8_t newDh;
+		if (targetHeight == STOP) { newDh = 0; }
+		else if (targetHeight < MAX_HEIGHT / 2) { newDh = -1; }
+		else { newDh = 1; }
 
 		if (newDh != getDH()) {
 			setDH(newDh);
