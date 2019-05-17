@@ -12,7 +12,7 @@
 //#define DEMO_MODE
 
 // Comment this line to use a static IP address of 10.0.0.2; un-comment to use DHCP
-//#define DHCP
+#define DHCP
 
 // Comment this line for production; un-comment it to enable serial communication
 #define SERIAL_DEBUG

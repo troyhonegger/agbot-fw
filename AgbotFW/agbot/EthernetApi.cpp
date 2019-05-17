@@ -98,7 +98,7 @@ namespace EthernetApi {
 		#ifdef DHCP
 		Ethernet.begin(mac);
 		#else
-		uint8_t controllerIP[4] = { 10, 0, 0, 2 };
+		uint8_t controllerIP[4] = { 192, 168, 4, 2 };
 		Ethernet.begin(mac, controllerIP);
 		#endif
 		// adjust these two settings to taste
