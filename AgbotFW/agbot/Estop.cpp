@@ -13,25 +13,20 @@ namespace agbot{
 	Estop::Estop() : whenEngaged(0), engaged(false) { }
 
 	void Estop::begin() {
-		pinMode(Estop::HW_PIN, INPUT_PULLUP);
-	}
-
-	bool Estop::isEngaged() const {
-		if (engaged) { return true; }
-		else { return digitalRead(Estop::HW_PIN) == LOW; }
+		pinMode(Estop::HW_PIN, OUTPUT);
+		digitalWrite(Estop::HW_PIN, HIGH);
 	}
 
 	void Estop::engage() {
 		whenEngaged = millis();
 		engaged = true;
 		digitalWrite(Estop::HW_PIN, LOW);
-		pinMode(Estop::HW_PIN, OUTPUT);
 	}
 
 	void Estop::update() {
 		if (engaged && isElapsed(whenEngaged + Estop::PULSE_LEN)) {
 			engaged = false;
-			pinMode(Estop::HW_PIN, INPUT_PULLUP);
+			digitalWrite(Estop::HW_PIN, HIGH);
 		}
 	}
 }

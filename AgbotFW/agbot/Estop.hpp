@@ -25,7 +25,7 @@
 namespace agbot{
 	class Estop {
 		private:
-			static const uint8_t HW_PIN = 22;
+			static const uint8_t HW_PIN = 23;
 			static const uint16_t PULSE_LEN = 100;
 			
 			unsigned long whenEngaged;
@@ -40,11 +40,6 @@ namespace agbot{
 
 			// Initializes the e-stop (configures GPIO pins, sets internal state, etc)
 			void begin();
-
-			// returns true if and only if the controller, or any other system connected to the e-stop line, is currently holding
-			// the line low. Note that this will still return false even if the e-stop has already latched on, but the e-stop line
-			// is no longer low. There is currently no way to get the state of the e-stop relay itself.
-			bool isEngaged() const;
 			
 			// switches on the e-stop, shutting off power to all implements until the operator manually disengages it.
 			// This should only be called if something very wrong is happening, and under well-documented cases
