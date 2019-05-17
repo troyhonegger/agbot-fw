@@ -29,6 +29,8 @@ namespace agbot {
 		pinMode(HEIGHT_SENSOR_PIN, INPUT);
 		targetHeight = STOP;
 		dh = 0;
+		pinMode(CLUTCH_PIN, OUTPUT);
+		digitalWrite(CLUTCH_PIN, CLUTCH_OFF_VOLTAGE);
 		updateClutch();
 	}
 
@@ -64,18 +66,16 @@ namespace agbot {
 	}
 
 	void Hitch::updateClutch() {
-		if (!dh) {
-			uint8_t loweredHeight = config->get(Setting::HitchLoweredHeight);
-			int8_t diff = loweredHeight < actualHeight ? actualHeight - loweredHeight : loweredHeight - actualHeight;
-			if (diff < config->get(Setting::HitchAccuracy)) {
-				digitalWrite(CLUTCH_PIN, CLUTCH_OFF_VOLTAGE);
-			}
-			else {
+		if (dh) { digitalWrite(CLUTCH_PIN, CLUTCH_ON_VOLTAGE); }
+		else {
+			if (targetHeight == STOP) {
+				// We're not moving, but we don't know if the hitch is up or not. We'll leave the clutch on to be safe.
 				digitalWrite(CLUTCH_PIN, CLUTCH_ON_VOLTAGE);
 			}
-		}
-		else {
-			digitalWrite(CLUTCH_PIN, CLUTCH_ON_VOLTAGE);
+			else if (targetHeight < MAX_HEIGHT / 2) {
+				digitalWrite(CLUTCH_PIN, CLUTCH_OFF_VOLTAGE);
+			}
+			else { digitalWrite(CLUTCH_PIN, CLUTCH_ON_VOLTAGE); }
 		}
 	}
 
