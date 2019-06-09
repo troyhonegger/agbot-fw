@@ -66,17 +66,14 @@ namespace agbot {
 	}
 
 	void Hitch::updateClutch() {
-		if (dh) { digitalWrite(CLUTCH_PIN, CLUTCH_ON_VOLTAGE); }
-		else {
-			if (targetHeight == STOP) {
-				// We're not moving, but we don't know if the hitch is up or not. We'll leave the clutch on to be safe.
-				digitalWrite(CLUTCH_PIN, CLUTCH_ON_VOLTAGE);
-			}
-			else if (targetHeight < MAX_HEIGHT / 2) {
-				digitalWrite(CLUTCH_PIN, CLUTCH_OFF_VOLTAGE);
-			}
-			else { digitalWrite(CLUTCH_PIN, CLUTCH_ON_VOLTAGE); }
+		if (targetHeight == STOP) {
+			// We're not moving, but we don't know if the hitch is up or not. We'll leave the clutch on to be safe.
+			digitalWrite(CLUTCH_PIN, CLUTCH_OFF_VOLTAGE);
 		}
+		else if (targetHeight < MAX_HEIGHT / 2) {
+			digitalWrite(CLUTCH_PIN, CLUTCH_ON_VOLTAGE);
+		}
+		else { digitalWrite(CLUTCH_PIN, CLUTCH_OFF_VOLTAGE); }
 	}
 
 	size_t Hitch::serialize(char* str, size_t n) const {

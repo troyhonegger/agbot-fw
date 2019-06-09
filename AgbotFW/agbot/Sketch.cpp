@@ -178,16 +178,9 @@ void loop() {
 	}
 	//hitch.getActualHeight();
 	estop.update();
-	bool hitchNeedsUpdate = hitch.needsUpdate();
-	if (hitchNeedsUpdate || hitch.getDH()) {
-		for (uint8_t i = 0; i < Tiller::COUNT; i++) { tillers[i].stop(true, true); }
-		for (uint8_t i = 0; i < Sprayer::COUNT; i++) { sprayers[i].stop(true, true); }
-		if (hitchNeedsUpdate) { hitch.update(); }
-	}
-	if (!hitch.getDH()) {
-		for (uint8_t i = 0; i < Tiller::COUNT; i++) { tillers[i].update(); }
-		for (uint8_t i = 0; i < Sprayer::COUNT; i++) { sprayers[i].update(); }
-	}
+	if (hitch.needsUpdate()) { hitch.update(); }
+	for (uint8_t i = 0; i < Tiller::COUNT; i++) { tillers[i].update(); }
+	for (uint8_t i = 0; i < Sprayer::COUNT; i++) { sprayers[i].update(); }
 
 	// throttle up if the hitch or any tillers are moving (but NOT if the sprayers or the
 	// clutch are active - they shouldn't suck too much power)
