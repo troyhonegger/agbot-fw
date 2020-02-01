@@ -262,6 +262,12 @@
     <Compile Include="Config.cpp">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="Http.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="Http.hpp">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="Sketch.cpp">
       <SubType>compile</SubType>
     </Compile>
