@@ -6,11 +6,11 @@
 // TODO: this is ugly, but it's the only way Atmel studio currently recognizes the header. How to add Ethernet.h to the include path?
 #include "../ArduinoCore/include/libraries/Ethernet/src/Ethernet.h"
 
-#define HTTP_HEADER_CNT			(6)
+#define HTTP_HEADER_CNT			(8)
 
 // Size of buffer allocated by HTTP server for storing HTTP headers.
 // Any incoming request cannot overflow this buffer; if it does, a 431 is returned
-#define HTTP_INCOMING_REQUEST_HEADERS_SIZE		(128)
+#define HTTP_INCOMING_REQUEST_HEADERS_SIZE		(256)
 // Size of buffer allocated by HTTP server for storing request URI.
 // Any incoming request cannot overflow this buffer; if it does, a 414 is returned
 #define HTTP_INCOMING_REQUEST_URI_SIZE			(40)
@@ -55,11 +55,12 @@ struct HttpRequest {
 };
 
 struct HttpResponse {
-	uint16_t responseCode;
-	HttpHeader* headers[HTTP_HEADER_CNT];
-	// TODO: support case where content points to PROGMEM
+	HttpHeader headers[HTTP_HEADER_CNT];
 	char* content;
 	size_t contentLength;
+	uint16_t responseCode;
+	HttpVersion version;
+	bool isContentInProgmem;
 };
 
 struct HttpConnection {
