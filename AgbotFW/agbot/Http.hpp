@@ -75,7 +75,7 @@ struct HttpConnection {
 	uint8_t state;
 };
 
-typedef void (*HttpHandler)(HttpRequest const &, HttpResponse &);
+typedef void HttpHandler(HttpRequest const &, HttpResponse &);
 
 class HttpServer {
 	uint8_t numConnections;
@@ -86,9 +86,9 @@ class HttpServer {
 	EthernetClient clients[HTTP_MAX_CONNECTIONS];
 	HttpConnection connections[HTTP_MAX_CONNECTIONS];
 
-	HttpHandler handler;
+	HttpHandler* handler;
 public:
-	HttpServer(EthernetServer& server, uint8_t maxConnections, HttpHandler handler);
+	HttpServer(EthernetServer& server, uint8_t maxConnections, HttpHandler* handler);
 	void begin(void);
 	void serve(void);
 };

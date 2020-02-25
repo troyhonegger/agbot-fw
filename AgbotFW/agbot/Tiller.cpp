@@ -43,12 +43,7 @@ namespace agbot {
 
 	void Tiller::setMode(MachineMode mode) {
 		switch (mode) {
-			case MachineMode::Unset:
-				lowerTime = raiseTime = millis();
-				setState(TillerState::Unset);
-				targetHeight = STOP;
-				break;
-			case MachineMode::Process:
+			case MachineMode::Run:
 				lowerTime = raiseTime = millis();
 				setState(TillerState::ProcessRaising);
 				targetHeight = config->get(Setting::TillerRaisedHeight);

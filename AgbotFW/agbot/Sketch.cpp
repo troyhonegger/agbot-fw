@@ -1,17 +1,52 @@
 ﻿#include <Arduino.h>
 
 #include "Common.hpp"
-#include "Config.hpp"
-#include "EthernetApi.hpp"
-#include "Estop.hpp"
-#include "Hitch.hpp"
-#include "Tiller.hpp"
-#include "Sprayer.hpp"
-#include "Throttle.hpp"
+#include "Devices.hpp"
+#include "Http.hpp"
+#include "HttpApi.hpp"
 
 #include <string.h>
 
 using namespace agbot;
+
+Config agbot::config;
+Hitch agbot::hitch;
+Tiller agbot::tillers[Tiller::COUNT];
+Sprayer agbot::sprayers[Sprayer::COUNT];
+Throttle agbot::throttle;
+MachineMode agbot::currentMode = MachineMode::Run;
+
+EthernetServer ethernetSrvr(80);
+HttpServer server(ethernetSrvr, 4, apiHandler);
+
+#ifndef DEMO_MODE
+
+void setup() {
+	config.begin();
+	hitch.begin(&config);
+	for (uint8_t i = 0; i < Tiller::COUNT; i++) {
+		tillers[i].begin(i, &config);
+	}
+	for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
+		sprayers[i].begin(i, &config);
+	}
+	throttle.begin();
+
+	#ifdef SERIAL_DEBUG
+	Serial.begin(9600);
+	Serial.println("Serial debug mode ON");
+	#endif
+
+	uint8_t mac[6] = { 0xA8, 0x61, 0x0A, 0xAE, 0x11, 0xF6 };
+	uint8_t controllerIP[4] = { 192, 168, 4, 2 };
+	Ethernet.begin(mac, controllerIP);
+	// adjust these two settings to taste
+	Ethernet.setRetransmissionCount(3);
+	Ethernet.setRetransmissionTimeout(150);
+	server.begin();
+}
+
+/*
 
 static const char ERR_NOT_IN_PROCESS_MODE[] PROGMEM = "ERROR: Command invalid - not in process mode";
 static const char ERR_NOT_IN_DIAG_MODE[] PROGMEM = "ERROR: Command invalid - not in diag mode";
@@ -22,42 +57,11 @@ static const char MODE_UNSET[] PROGMEM = "Unset";
 
 static const char ERR_OUT_OF_RANGE_FMT_STR[] PROGMEM = "ERROR: Value must be between %d and %d";
 
-Config config;
-Estop estop;
-Hitch hitch;
-Tiller tillers[Tiller::COUNT];
-Sprayer sprayers[Sprayer::COUNT];
-Throttle throttle;
-MachineMode currentMode = MachineMode::Unset;
-unsigned long lastKeepAliveTime;
-
-#ifndef DEMO_MODE
-
-void setup() {
-	config.begin();
-	estop.begin();
-	hitch.begin(&config);
-	for (uint8_t i = 0; i < Tiller::COUNT; i++) {
-		tillers[i].begin(i, &config);
-	}
-	for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
-		sprayers[i].begin(i, &config);
-	}
-	throttle.begin();
-	EthernetApi::begin();
-	lastKeepAliveTime = millis();
-	
-	#ifdef SERIAL_DEBUG
-	Serial.begin(9600);
-	Serial.println("Serial debug mode ON");
-	#endif
-}
-
 void messageProcessor(EthernetApi::Command const& command, char* response) {
 	lastKeepAliveTime = millis();
 	switch (command.type) {
 		case EthernetApi::CommandType::Estop: { estop.engage(); } break;
-		case EthernetApi::CommandType::KeepAlive: { /* Do nothing */ } break;
+		case EthernetApi::CommandType::KeepAlive: break; // do nothing
 		case EthernetApi::CommandType::SetMode: {
 			// we don't have to validate the mode because the parser only knows of Processing and Diagnostics modes
 			currentMode = command.data.machineMode;
@@ -167,17 +171,12 @@ void messageProcessor(EthernetApi::Command const& command, char* response) {
 			else { hitch.raise(); }
 		} break;
 	}
-}
+}*/
 
 void loop() {
-	EthernetApi::read(messageProcessor);
+	server.serve();
 	
-	if (isElapsed(lastKeepAliveTime + config.get(Setting::KeepAliveTimeout))) {
-		lastKeepAliveTime = millis(); // wait another timeout length before firing estop again - once was enough
-		estop.engage();
-	}
 	//hitch.getActualHeight();
-	estop.update();
 	if (hitch.needsUpdate()) { hitch.update(); }
 	for (uint8_t i = 0; i < Tiller::COUNT; i++) { tillers[i].update(); }
 	for (uint8_t i = 0; i < Sprayer::COUNT; i++) { sprayers[i].update(); }

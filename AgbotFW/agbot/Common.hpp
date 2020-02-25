@@ -15,11 +15,11 @@
 #define DHCP
 
 // Comment this line for production; un-comment it to enable serial communication
-#define SERIAL_DEBUG
+//#define SERIAL_DEBUG
 
 namespace agbot {
 	enum class MachineMode : uint8_t {
-		Unset = 0, Process = 1, Diag = 2
+		Run = 0, Diag = 1
 	};
 
 	// technically, this function isn't perfect - if time is more than about 25 days in the future, it will be reported as elapsed,

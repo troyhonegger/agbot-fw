@@ -46,13 +46,10 @@ namespace agbot {
 		onTime = offTime = millis();
 		setDesiredStatus(OFF);
 		switch (mode) {
-			case MachineMode::Unset:
-				setState(SprayerState::Unset);
-				break;
 			case MachineMode::Diag:
 				setState(SprayerState::Diag);
 				break;
-			case MachineMode::Process:
+			case MachineMode::Run:
 				setState(SprayerState::ProcessOff);
 				break;
 		}

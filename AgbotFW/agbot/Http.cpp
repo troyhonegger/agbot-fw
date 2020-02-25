@@ -68,7 +68,7 @@ static size_t writePgm(Print& print, PGM_P buf, size_t bufLen) {
 
 static void resetConnection(HttpConnection&);
 
-HttpServer::HttpServer(EthernetServer& server, uint8_t maxConnections, HttpHandler handler)
+HttpServer::HttpServer(EthernetServer& server, uint8_t maxConnections, HttpHandler* handler)
 		: server(server), maxConnections(maxConnections), handler(handler) {
 	// limit maxConnections to HTTP_MAX_CONNECTIONS
 	if (maxConnections > HTTP_MAX_CONNECTIONS) {
@@ -751,7 +751,7 @@ static void writeResponse(EthernetClient& client, HttpResponse& response) {
 }
 
 //TODO if we ever support keep-alive, remove the hardcoded "Connection: Close" from each of these responses
-static void handleRequest(EthernetClient& client, HttpConnection& connection, HttpHandler handler) {
+static void handleRequest(EthernetClient& client, HttpConnection& connection, HttpHandler* handler) {
 	HttpResponse response {};
 	switch (connection.state) {
 		case HTTPCLIENT_RCVD_REQUEST:

@@ -5,7 +5,7 @@
  * Created: 3/13/2019 5:13:49 PM
  *  Author: troy.honegger
  */ 
-
+#if 0 // DISABLE ETHERNET API. Leaving in code for reference
 #include "EthernetApi.hpp"
 
 #include <Arduino.h>
@@ -408,3 +408,4 @@ namespace EthernetApi {
 	static inline void wipeBuffer(char* str, size_t size) { memset(str, 0, size); }
 }
 }
+#endif // if 0

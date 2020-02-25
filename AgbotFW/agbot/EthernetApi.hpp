@@ -5,7 +5,7 @@
  * Created: 3/13/2019 4:04:40 PM
  *  Author: troy.honegger
  */ 
-
+ #if 0 // DISABLE ETHERNET API. Leaving in code for reference
 #pragma once
 
 #include "Common.hpp"
@@ -85,3 +85,5 @@ namespace EthernetApi {
 	uint8_t read(void (*processor)(agbot::EthernetApi::Command const&, char*));
 }
 }
+
+#endif // if 0
