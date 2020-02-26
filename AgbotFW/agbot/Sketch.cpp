@@ -17,7 +17,7 @@ Throttle agbot::throttle;
 MachineMode agbot::currentMode = MachineMode::Run;
 
 EthernetServer ethernetSrvr(80);
-HttpServer server(ethernetSrvr, 4, apiHandler);
+HttpServer server(ethernetSrvr, 4, httpHandler);
 
 #ifndef DEMO_MODE
 
@@ -38,7 +38,7 @@ void setup() {
 	#endif
 
 	uint8_t mac[6] = { 0xA8, 0x61, 0x0A, 0xAE, 0x11, 0xF6 };
-	uint8_t controllerIP[4] = { 192, 168, 4, 2 };
+	uint8_t controllerIP[4] = {172, 21, 2, 1};//REVERT - should be { 192, 168, 4, 2 };
 	Ethernet.begin(mac, controllerIP);
 	// adjust these two settings to taste
 	Ethernet.setRetransmissionCount(3);
@@ -51,27 +51,11 @@ void setup() {
 static const char ERR_NOT_IN_PROCESS_MODE[] PROGMEM = "ERROR: Command invalid - not in process mode";
 static const char ERR_NOT_IN_DIAG_MODE[] PROGMEM = "ERROR: Command invalid - not in diag mode";
 
-static const char MODE_PROCESS[] PROGMEM = "Processing";
-static const char MODE_DIAG[] PROGMEM = "Diagnostics";
-static const char MODE_UNSET[] PROGMEM = "Unset";
-
 static const char ERR_OUT_OF_RANGE_FMT_STR[] PROGMEM = "ERROR: Value must be between %d and %d";
 
 void messageProcessor(EthernetApi::Command const& command, char* response) {
 	lastKeepAliveTime = millis();
 	switch (command.type) {
-		case EthernetApi::CommandType::Estop: { estop.engage(); } break;
-		case EthernetApi::CommandType::KeepAlive: break; // do nothing
-		case EthernetApi::CommandType::SetMode: {
-			// we don't have to validate the mode because the parser only knows of Processing and Diagnostics modes
-			currentMode = command.data.machineMode;
-			for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
-				sprayers[i].setMode(currentMode);
-			}
-			for (uint8_t i = 0; i < Tiller::COUNT; i++) {
-				tillers[i].setMode(currentMode);
-			}
-		} break;
 		case EthernetApi::CommandType::Process: {
 			if (currentMode != MachineMode::Process) {
 				strncpy_P(response, ERR_NOT_IN_PROCESS_MODE, EthernetApi::MAX_MESSAGE_SIZE);
@@ -89,24 +73,8 @@ void messageProcessor(EthernetApi::Command const& command, char* response) {
 				}
 			}
 		} break;
-		case EthernetApi::CommandType::SetConfig: {
-			Setting setting = command.data.config.setting;
-			uint16_t value = command.data.config.value;
-			if (value > 100 && setting != Setting::Precision && setting != Setting::ResponseDelay && setting != Setting::KeepAliveTimeout
-					&& setting != Setting::TillerLowerTime && setting != Setting::TillerRaiseTime) {
-				snprintf_P(response, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, 100);
-			}
-			else { config.set(setting, value); }
-		} break;
 		case EthernetApi::CommandType::GetState: {
 			switch (command.data.query.type) {
-				case EthernetApi::QueryType::Mode:
-					strncpy_P(response, currentMode == MachineMode::Process ? MODE_PROCESS : currentMode == MachineMode::Diag ? MODE_DIAG : MODE_UNSET,
-						EthernetApi::MAX_MESSAGE_SIZE);
-					break;
-				case EthernetApi::QueryType::Configuration:
-					snprintf(response, EthernetApi::MAX_MESSAGE_SIZE, "%u", config.get(static_cast<Setting>(command.data.query.value)));
-					break;
 				case EthernetApi::QueryType::Tiller:
 					if (command.data.query.value >= Tiller::COUNT) {
 						snprintf_P(response, EthernetApi::MAX_MESSAGE_SIZE, ERR_OUT_OF_RANGE_FMT_STR, 0, Tiller::COUNT - 1);

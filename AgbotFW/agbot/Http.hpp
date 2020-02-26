@@ -56,7 +56,7 @@ struct HttpRequest {
 
 struct HttpResponse {
 	HttpHeader headers[HTTP_HEADER_CNT];
-	char* content;
+	const char* content;
 	size_t contentLength;
 	uint16_t responseCode;
 	HttpVersion version;

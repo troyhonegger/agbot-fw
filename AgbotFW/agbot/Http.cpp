@@ -69,7 +69,7 @@ static size_t writePgm(Print& print, PGM_P buf, size_t bufLen) {
 static void resetConnection(HttpConnection&);
 
 HttpServer::HttpServer(EthernetServer& server, uint8_t maxConnections, HttpHandler* handler)
-		: server(server), maxConnections(maxConnections), handler(handler) {
+		: maxConnections(maxConnections), server(server), handler(handler) {
 	// limit maxConnections to HTTP_MAX_CONNECTIONS
 	if (maxConnections > HTTP_MAX_CONNECTIONS) {
 		HttpServer::maxConnections = HTTP_MAX_CONNECTIONS;
@@ -256,7 +256,7 @@ static bool parseClient_ReadingUri(EthernetClient& client, HttpConnection& conne
 
 	// check for leading whitespace and trim it if necessary
 	if (connection.readPosition == 0) {
-		int i;
+		unsigned int i;
 		for (i = 0; i < amountRead; i++) {
 			if (connection.requestUri[i] != ' ' && connection.requestUri[i] != '\t') {
 				break;
@@ -301,7 +301,7 @@ static bool parseClient_ReadingVersion(EthernetClient& client, HttpConnection& c
 
 	// check for leading whitespace and trim it if necessary
 	if (connection.readPosition == 0) {
-		int i;
+		unsigned int i;
 		for (i = 0; i < amountRead; i++) {
 			if (connection.requestBody[i] != ' ' && connection.requestBody[i] != '\t') {
 				break;
@@ -427,7 +427,7 @@ static bool parseClient_ReadingHeaderValue(EthernetClient& client, HttpConnectio
 	else {
 		HttpHeader* currentHeader = &connection.request.headers[connection.request.numHeaders - 1];
 		if (!currentHeader->value) {
-			int i;
+			unsigned int i;
 			// haven't found the start of the literal value yet. Scan ahead until you find a non-whitespace character
 			for (i = connection.parsePosition; i < connection.readPosition; i++) {
 				if (connection.requestHeaders[i] != ' ' && connection.requestHeaders[i] != '\t') {

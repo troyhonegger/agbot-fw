@@ -9,4 +9,4 @@
 
 #include "Http.hpp"
 
-HttpHandler apiHandler;
+HttpHandler httpHandler;
