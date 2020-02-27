@@ -21,9 +21,43 @@ namespace agbot {
 	enum class MachineMode : uint8_t {
 		Run = 0, Diag = 1
 	};
-
-	// technically, this function isn't perfect - if time is more than about 25 days in the future, it will be reported as elapsed,
-	// and if it is more than about 25 days in the past, it will be reported as not elapsed, due to arithmetic overflow. However,
-	// it is as accurate as possible given the constraints of the system architecture.
-	inline bool isElapsed(unsigned long time) { return millis() - time < ((~0UL)>>1); }
 }
+
+// returns: > 0 if t1 comes after t2; < 0 if t1 comes before t2; 0 if t1 equals t2
+inline bool timeCmp(unsigned long t1, unsigned long t2) {
+	unsigned long diff = t1 - t2;
+	if (diff == 0) {
+		return 0;
+	}
+	else if (diff < ((~0UL)>>1)) {
+		return 1;
+	}
+	else {
+		return -1;
+	}
+}
+
+// technically, this function isn't perfect - if time is more than about 25 days in the future, it will be reported as elapsed,
+// and if it is more than about 25 days in the past, it will be reported as not elapsed, due to arithmetic overflow. However,
+// it is as accurate as possible given the constraints of the system architecture.
+inline bool isElapsed(unsigned long time) { return timeCmp(millis(), time) >= 0; }
+
+struct Timer {
+	uint32_t time;
+	bool isSet;
+	// start the timer. If it is already started, do nothing.
+	void start(uint32_t delay);
+	// restart the timer. If the timer is not already started, start it.
+	void restart(uint32_t delay);
+	// stop the timer. If it is already stopped, do nothing.
+	void stop(void);
+	// if the timer is set and the time has elapsed, stop the timer and return true. Otherwise, return false.
+	bool isUp(void);
+	// returns true as long as the timer was set in the past, and has now elapsed. Upon triggering, subsequent calls
+	// will return true until the timer is started again.
+	bool hasElapsed(void);
+
+	Timer();
+private:
+	bool wasSet;
+};

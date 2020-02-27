@@ -237,6 +237,9 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Common.cpp">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="Common.hpp">
       <SubType>compile</SubType>
     </Compile>

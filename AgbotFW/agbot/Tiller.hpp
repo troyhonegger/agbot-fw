@@ -30,35 +30,35 @@
 #include "Config.hpp"
 
 namespace agbot {
-	enum class TillerState : uint8_t {
-		Unset=0,
-		Diag=1,
-		ProcessRaising=2,
-		ProcessLowering=3,
-		ProcessScheduled=4
+	// Commands that can be given to the tiller in setHeight() in place of a height 0-100.
+	enum TillerCommand : uint8_t {
+		RAISED = 251, // Tiller should be raised slightly above the ground, ready to lower into position if a weed is spotted. The exact height will depend on the height above the ground.
+		LOWERED = 252, // Tiller should be lowered into the soil. The exact height will depend on the height above the ground.
+		UP = 253, // Tiller should always be raising, until it hits the hardware limit switch.
+		DOWN = 254, // Tiller should always be lowering, until it hits the hardware limit switch.
+		STOP = 255 // Tiller should stop where it is.
 	};
 
 	class Tiller {
 		public:
 			static const uint8_t COUNT = 3;
 			static const uint8_t MAX_HEIGHT = 100;
-			static const uint8_t STOP = 255;
 		private:
-			unsigned long lowerTime; // If state is TillerState::ProcessScheuled, tiller must begin lowering by this time
-			unsigned long raiseTime; // If state is TillerState::ProcessLowering, tiller must begin raising by this time
+			static const uint8_t COMMAND_LIST_SIZE = 4;
+			Timer timers[COMMAND_LIST_SIZE];
 			Config const* config;
-			uint8_t state; // To save space, encodes TillerState in least significant 4 bits, id in next 2, and dh in next 2
+			uint8_t commandList[COMMAND_LIST_SIZE];
+			uint8_t state; // To save space, id is stored in bits 4-5, and dh in bits 6-7 (where the least significant bit is bit 0)
 			uint8_t targetHeight;
 			mutable uint8_t actualHeight;
 
-			inline uint8_t getOnVoltage() const { return getId() == 2 ? LOW : HIGH; } // TODO: change mapping if need be
-			inline uint8_t getOffVoltage() const { return !getOnVoltage(); }
-			inline void setState(TillerState state) { this->state = (this->state & 0xF0) | static_cast<uint8_t>(state); }
+			inline uint8_t getOnVoltage(void) const { return getId() == 2 ? LOW : HIGH; } // TODO: change mapping if need be
+			inline uint8_t getOffVoltage(void) const { return !getOnVoltage(); }
 			inline void setDH(int8_t dh) { state = (state & 0x3F) | ((dh & 3) << 6); }
 			
-			inline uint8_t getRaisePin() const { return getId() * 2 + 30; }
-			inline uint8_t getLowerPin() const { return getRaisePin() + 1; }
-			inline uint8_t getHeightSensorPin() const { return PIN_A9 + getId(); }
+			inline uint8_t getRaisePin(void) const { return getId() * 2 + 30; }
+			inline uint8_t getLowerPin(void) const { return getRaisePin() + 1; }
+			inline uint8_t getHeightSensorPin(void) const { return PIN_A9 + getId(); }
 
 			// disallow copy constructor since Tiller interacts with hardware, which makes duplicate instances a bad idea
 			void operator =(Tiller const&) {}
@@ -68,7 +68,6 @@ namespace agbot {
 			Tiller() {}
 
 			// Initializes the tiller, sets up the GPIO pins, and performs any other necessary setup work.
-			// note that setMode() still needs to be called before the tiller can be actually used.
 			void begin(uint8_t id, Config const* config);
 
 			// Releases any resources held by the tiller - currently, this just means resetting the GPIO pins.
@@ -77,51 +76,37 @@ namespace agbot {
 			~Tiller();
 
 			// Retrieves the ID of the tiller, which should be between 0 and 2.
-			inline uint8_t getId() const { return (state & 0x30) >> 4; }
-			// Retrieves the state of the tiller
-			inline TillerState getState() const { return static_cast<TillerState>(state & 0xF); }
+			inline uint8_t getId(void) const { return (state & 0x30) >> 4; }
 			// Retrieves the current direction of motion of the tiller (1 is up, 0 is stopped, -1 is down)
-			inline int8_t getDH() const { return (state >= 0x80) ? -1 : (state & 0xC0) >> 6; }
+			inline int8_t getDH(void) const { return (state >= 0x80) ? -1 : (state & 0xC0) >> 6; }
 			
 			// Retrieves the cached height of the trailer. This is an actual, physical height of the trailer on a scale from 0-100,
 			// and it may be different from the target height.
-			inline uint8_t getActualHeight() const { return actualHeight; }
+			inline uint8_t getActualHeight(void) const { return actualHeight; }
 			// Reads and stores the height from the tiller's height sensor. This is the actual, physical height of the trailer on a scale from 0-100,
 			// and as such it may be different from the target height.
-			void updateActualHeight() const;
+			void updateActualHeight(void) const;
 
-			// Puts the tiller in processing or diagnostics mode. This should be called every time the machine mode changes.
-			// It is also possible to put the tiller in MachineMode::Unset, though this state was really designed to refer to
-			// the uninitialized state of a tiller when the machine first powers up and should, in general, not be used after
-			// startup. A possible exception is that MachineMode::Unset may be used to represent the state after an e-stop.
-			void setMode(MachineMode);
-			
-			// Returns the target height of the tiller (0-100 or Tiller::STOP)
-			inline uint8_t getTargetHeight() const { return targetHeight; }
-			// Sets the tiller to target the specified height. This is valid only in diagnostics mode; in process mode, use scheduleLower()
-			void setTargetHeight(uint8_t);
+			// Returns the target height of the tiller (0-100 or a TillerCommand)
+			inline uint8_t getTargetHeight(void) const { return targetHeight; }
 
-			// Instructs the tiller to stop at its current height. This is always valid, but in process mode, the raise/lower timer may
-			// override the stop command and spontaneously start the tiller at any time, even if it was just stopped. To ensure that
-			// the tiller actually stops, you can call stop(true) instead, which, rather than scheduling a stop for the next update(),
-			// actually performs the GPIO work to do it immediately, thus overriding any scheduled operations. Note that even then, the
-			// next time you call update() the stop command can still be overridden.
-			// Calling stop(true) also updates the tiller's target height to STOP. To avoid this, set temporary to true. This leaves the
-			// state unchanged, so the next call to update() will result in the correct operation.
-			void stop(bool now = false, bool temporary = false);
+			// Adds a command to the command list, to be executed after a delay. Commands are executed from the command list as their timers
+			// expire. The most recently inserted command overrides all commands that would otherwise trigger after it; so, for example, if
+			// the tiller is set to raise in 100ms, calling setHeight(TillerCommand::STOP, 0) will cancel that operation.
+			// Arguments: command is either a height 0-100 or a TillerCommand. delay is a value in milliseconds.
+			// returns: true if there is room in the command list for the command; false if the command list is full.
+			bool setHeight(uint8_t command, uint32_t delay = 0);
 
 			// Signals to the tiller that a weed has been sighted up ahead and the tiller should begin lowering at some point in the future.
 			// The exact time is computed from the configuration settings. This command should be issued for every weed that is sighted,
-			// even if the tiller is already lowered. If enough time passes without receiving a scheduleLower() command, the tiller will raise
-			// back up. This function is valid only in processing mode
-			void scheduleLower();
-			// Cancels any scheduled "tiller lower" operation and instructs the tiller to raise immediately. This is only valid in processing mode.
-			void cancelLower();
+			// even if the tiller is already lowered. If enough time passes after sending this command, the tiller will raise
+			// back up.
+			void killWeed(void);
 
 			// The only function in Tiller that actually sets voltages on GPIO pins. It is CRITICAL that this be called every iteration of the main
 			// controller loop; other commands (including diagnostics commands, stop commands, etc) only schedule operations to be performed in
 			// the update() function
-			void update();
+			void update(void);
 
 			// Writes the information pertaining to this tiller to the given string. Writes at most n characters, and returns the number of
 			// characters that written (or that would have been written, if the size exceeds n)

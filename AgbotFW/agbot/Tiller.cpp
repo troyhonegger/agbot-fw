@@ -14,24 +14,21 @@
 
 #include <string.h>
 
-static const char TILLER_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hhd,\"target\":%hhu,\"until\":%ld}";
-static const char TILLER_NO_UNTIL_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hhd,\"target\":%hhu}";
-static const char TILLER_STOPPED_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hhd,\"target\":\"STOP\",\"until\":%ld}";
-static const char TILLER_STOPPED_NO_UNTIL_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hhd,\"target\":\"STOP\"}";
-
 namespace agbot {
 	void Tiller::begin(uint8_t id, Config const* config) {
-		state = ((id & 3) << 4) | static_cast<uint8_t>(TillerState::Unset);
-		raiseTime = lowerTime = millis();
-		*config; // dereference seg faults if null
+		state = (id & 3) << 4;
+		if (config == nullptr) { // poor man's assert(config)
+			abort();
+		}
 		targetHeight = STOP;
-		actualHeight = MAX_HEIGHT;
 		this->config = config;
 		pinMode(getRaisePin(), OUTPUT);
 		digitalWrite(getRaisePin(), getOffVoltage());
 		pinMode(getLowerPin(), OUTPUT);
 		digitalWrite(getLowerPin(), getOffVoltage());
 		pinMode(getHeightSensorPin(), INPUT);
+
+		updateActualHeight();
 	}
 
 	Tiller::~Tiller() {
@@ -41,82 +38,75 @@ namespace agbot {
 
 	inline void Tiller::updateActualHeight() const { actualHeight = map(analogRead(getHeightSensorPin()), 1023, 204, 0, MAX_HEIGHT); }
 
-	void Tiller::setMode(MachineMode mode) {
-		switch (mode) {
-			case MachineMode::Run:
-				lowerTime = raiseTime = millis();
-				setState(TillerState::ProcessRaising);
-				targetHeight = config->get(Setting::TillerRaisedHeight);
-				break;
-			case MachineMode::Diag:
-				lowerTime = raiseTime = millis();
-				setState(TillerState::Diag);
-				targetHeight = STOP;
-				break;
-			default:
-				break;
+	bool Tiller::setHeight(uint8_t command, uint32_t delay) {
+		uint32_t triggerTime = millis() + delay;
+		// stop all timers that are triggered to fire after this timer
+		for (unsigned int i = 0; i < sizeof(timers) / sizeof(timers[0]); i++) {
+			if (timers[i].isSet && timeCmp(triggerTime, timers[i].time) <= 0) {
+				timers[i].stop();
+			}
 		}
+		if (delay) {
+			for (unsigned int i = 0; i < sizeof(timers) / sizeof(timers[0]); i++) {
+				if (!timers[i].isSet) {
+					timers[i].start(delay);
+					commandList[i] = command;
+					goto foundSlot;
+				}
+			}
+			// error - didn't find a slot to put the command
+			return false;
+			foundSlot: ;
+		}
+		else {
+			targetHeight = command;
+		}
+		return true;
 	}
 
-	void Tiller::setTargetHeight(uint8_t height) {
-		if (getState() == TillerState::Diag) {
-			targetHeight = height;
-		}
-	}
-	
-	void Tiller::stop(bool now, bool temporary) {
-		if (!temporary) { targetHeight = STOP; }
-		if (now && getDH()) {
-			setDH(0);
-			digitalWrite(getRaisePin(), getOffVoltage());
-			digitalWrite(getLowerPin(), getOffVoltage());
-		}
-	}
-
-	void Tiller::scheduleLower() {
-		bool isProcessing = false;
-		switch (getState()) {
-			case TillerState::ProcessRaising:
-			case TillerState::ProcessLowering:
-				isProcessing = true;
-				// lowerTime = millis() + responseDelay - (raisedHeight - loweredHeight)*tillerLowerTime/100 - precision/2
-				lowerTime = millis() + config->get(Setting::ResponseDelay) -
-					((config->get(Setting::TillerRaisedHeight) - config->get(Setting::TillerLoweredHeight))*config->get(Setting::TillerLowerTime)
-					+ config->get(Setting::Precision) * 50) / 100;
-				break;
-			case TillerState::ProcessScheduled:
-				isProcessing = true;
-				break;
-		}
-		if (isProcessing) {
-			raiseTime = millis() + config->get(Setting::ResponseDelay) + config->get(Setting::Precision) / 2;
-			setState(TillerState::ProcessScheduled);
-		}
-	}
-
-	void Tiller::cancelLower() {
-		if (getState() == TillerState::ProcessScheduled || getState() == TillerState::ProcessRaising) {
-			raiseTime = lowerTime = millis();
-			setState(TillerState::ProcessRaising);
-			targetHeight = config->get(Setting::TillerRaisedHeight);
-		}
+	void Tiller::killWeed() {
+		uint32_t delay;
+		// lowerTime = millis() + responseDelay - (raisedHeight - loweredHeight)*tillerLowerTime/100 - precision/2
+		delay = config->get(Setting::ResponseDelay) -
+			((config->get(Setting::TillerRaisedHeight) - config->get(Setting::TillerLoweredHeight)) * config->get(Setting::TillerLowerTime)
+			+ config->get(Setting::Precision) * 50) / 100;
+		setHeight(TillerCommand::LOWERED, delay);
+		delay = config->get(Setting::ResponseDelay) + config->get(Setting::Precision) / 2;
+		setHeight(TillerCommand::RAISED, delay);
 	}
 
 	void Tiller::update() {
-		if (getState() == TillerState::ProcessScheduled && isElapsed(lowerTime)) {
-			setState(TillerState::ProcessLowering);
-			targetHeight = config->get(Setting::TillerLoweredHeight);
-		}
-		else if (getState() == TillerState::ProcessLowering && isElapsed(raiseTime)) {
-			setState(TillerState::ProcessRaising);
-			targetHeight = config->get(Setting::TillerRaisedHeight);
+		// see if any commands are done waiting and ready to be executed.
+		for (unsigned int i = 0; i < sizeof(commandList) / sizeof(commandList[0]); i++) {
+			if (timers[i].isUp()) {
+				targetHeight = commandList[i];
+				break;
+			}
 		}
 
 		updateActualHeight();
 		int8_t newDh;
-		if (targetHeight == STOP) { newDh = 0; }
-		else if (targetHeight < MAX_HEIGHT / 2) { newDh = -1; }
-		else { newDh = 1; }
+		switch (targetHeight) {
+			case TillerCommand::STOP:
+				newDh = 0;
+				break;
+			case TillerCommand::UP:
+				newDh = 1;
+				break;
+			case TillerCommand::DOWN:
+				newDh = -1;
+				break;
+			//NOWNOW use actual actuator feedback (and in the case of RAISED and LOWERED, height sensor data) to compute newDh
+			case TillerCommand::LOWERED:
+				newDh = -1;
+				break;
+			case TillerCommand::RAISED:
+				newDh = 1;
+				break;
+			default: // integer 0-100
+				if (targetHeight < MAX_HEIGHT / 2) { newDh = -1; }
+				else { newDh = 1; }
+		}
 
 		if (newDh != getDH()) {
 			setDH(newDh);
@@ -139,23 +129,27 @@ namespace agbot {
 
 	size_t Tiller::serialize(char *str, size_t n) const {
 		updateActualHeight();
-		TillerState state = getState();
-		if (state != TillerState::ProcessLowering && state != TillerState::ProcessScheduled) {
-			if (targetHeight == Tiller::STOP) {
-				return snprintf_P(str, n, TILLER_STOPPED_NO_UNTIL_FMT_STR, actualHeight, getDH());
-			}
-			else {
-				return snprintf_P(str, n, TILLER_NO_UNTIL_FMT_STR, actualHeight, getDH(), targetHeight);
-			}
+		char targetStr[10];
+		switch (targetHeight) {
+			case TillerCommand::STOP:
+				strcpy_P(targetStr, PSTR("STOP"));
+				break;
+			case TillerCommand::DOWN:
+				strcpy_P(targetStr, PSTR("DOWN"));
+				break;
+			case TillerCommand::LOWERED:
+				strcpy_P(targetStr, PSTR("LOWERED"));
+				break;
+			case TillerCommand::RAISED:
+				strcpy_P(targetStr, PSTR("RAISED"));
+				break;
+			case TillerCommand::UP:
+				strcpy_P(targetStr, PSTR("UP"));
+				break;
+			default:
+				sprintf_P(targetStr, PSTR("%d"), targetHeight);
+				break;
 		}
-		else {
-			int32_t until = state == TillerState::ProcessScheduled ? lowerTime - millis() : raiseTime - millis();
-			if (targetHeight == Tiller::STOP) {
-				return snprintf_P(str, n, TILLER_STOPPED_FMT_STR, actualHeight, getDH(), until);
-			}
-			else {
-				return snprintf_P(str, n, TILLER_FMT_STR, actualHeight, getDH(), targetHeight, until);
-			}
-		}
+		return snprintf_P(str, n, PSTR("{\"height\":%hhu,\"dh\":%hhd,\"target\":%s}"), actualHeight, getDH(), targetStr);
 	}
 }
