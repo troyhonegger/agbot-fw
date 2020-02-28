@@ -1,24 +1,19 @@
 /*
  * Tiller.hpp
  * Encapsulates the data and logic necessary to interact with a tiller on the multivator in the agbot::Tiller class.
- * In particular, the class implements a state machine that allows you to send it either diagnostics (raise/lower/stop)
- * or processing (weed/no weed) commands, and in either case, it will coordinate all the task scheduling, height
- * sensing, and GPIO necessary to run the tiller.
+ * Handles scheduling of commands (raise, lower, stop, etc) sent to a single tiller.
  * 
- * The tiller class breaks from C++ RAII pattern, since needs to be initialized as a global variable, and the initialization
- * logic for a tiller depends on the completion of certain hardware setup that occurs in the Arduino library's main() method.
+ * The tiller class breaks from C++ RAII pattern, to allow for its instantiation as a global variable before main() runs.
  * Accordingly, you must call begin() on every tiller before using it.
  * 
- * It is critically important to realize that tiller operations are scheduled, and not necessarily performed immediately.
- * When you call ANY tiller function (from scheduleLower() to setHeight() to stop()), the tiller itself does not change
- * until you call update(). This is the ONLY function that performs GPIO.
+ * tiller.update() must be called every loop iteration. Most operations are scheduled, not immediate,
+ * so failing to call update() will result in the physical I/O points not being activated
  * 
  * Usage example:
  *	agbot::Tiller tiller;
  *	tiller.begin(0, &config); // requires pre-initialized configuration - see Config.hpp
- *	tiller.setMode(agbot::MachineMode::Process);
- *	tiller.scheduleLower();
- *	tiller.update();
+ *	tiller.killWeed();
+ *	tiller.update(); // call this repeatedly so tiller can raise when ready
  * 
  * Created: 3/1/2019 11:12:49 PM
  *  Author: troy.honegger
@@ -32,8 +27,8 @@
 namespace agbot {
 	// Commands that can be given to the tiller in setHeight() in place of a height 0-100.
 	enum TillerCommand : uint8_t {
-		RAISED = 251, // Tiller should be raised slightly above the ground, ready to lower into position if a weed is spotted. The exact height will depend on the height above the ground.
-		LOWERED = 252, // Tiller should be lowered into the soil. The exact height will depend on the height above the ground.
+		RAISED = 251, // Tiller should be raised slightly above the ground, ready to lower into position if a weed is spotted. The exact height will depend on the distance to the ground.
+		LOWERED = 252, // Tiller should be lowered into the soil. The exact height will depend on the distance to the ground.
 		UP = 253, // Tiller should always be raising, until it hits the hardware limit switch.
 		DOWN = 254, // Tiller should always be lowering, until it hits the hardware limit switch.
 		STOP = 255 // Tiller should stop where it is.
@@ -41,7 +36,7 @@ namespace agbot {
 
 	class Tiller {
 		public:
-			static const uint8_t COUNT = 3;
+			static const uint8_t COUNT = 3; // number of tillers on the machine
 			static const uint8_t MAX_HEIGHT = 100;
 		private:
 			static const uint8_t COMMAND_LIST_SIZE = 4;
@@ -49,7 +44,7 @@ namespace agbot {
 			Config const* config;
 			uint8_t commandList[COMMAND_LIST_SIZE];
 			uint8_t state; // To save space, id is stored in bits 4-5, and dh in bits 6-7 (where the least significant bit is bit 0)
-			uint8_t targetHeight;
+			uint8_t targetHeight; // is either a height 0-Tiller::MAX_HEIGHT or a TillerCommand
 			mutable uint8_t actualHeight;
 
 			inline uint8_t getOnVoltage(void) const { return getId() == 2 ? LOW : HIGH; } // TODO: change mapping if need be
@@ -75,7 +70,7 @@ namespace agbot {
 			// I can't think of a logical reason for dynamically creating and then destroying a tiller object
 			~Tiller();
 
-			// Retrieves the ID of the tiller, which should be between 0 and 2.
+			// Retrieves the ID of the tiller, which should be between 0 and Tiller::COUNT - 1.
 			inline uint8_t getId(void) const { return (state & 0x30) >> 4; }
 			// Retrieves the current direction of motion of the tiller (1 is up, 0 is stopped, -1 is down)
 			inline int8_t getDH(void) const { return (state >= 0x80) ? -1 : (state & 0xC0) >> 6; }
@@ -99,13 +94,10 @@ namespace agbot {
 
 			// Signals to the tiller that a weed has been sighted up ahead and the tiller should begin lowering at some point in the future.
 			// The exact time is computed from the configuration settings. This command should be issued for every weed that is sighted,
-			// even if the tiller is already lowered. If enough time passes after sending this command, the tiller will raise
-			// back up.
+			// even if the tiller is already lowered. If enough time passes after sending this command, the tiller will raise back up.
 			void killWeed(void);
 
-			// The only function in Tiller that actually sets voltages on GPIO pins. It is CRITICAL that this be called every iteration of the main
-			// controller loop; other commands (including diagnostics commands, stop commands, etc) only schedule operations to be performed in
-			// the update() function
+			// Checks for and performs any scheduled operations. This should be called every iteration of the main controller loop.
 			void update(void);
 
 			// Writes the information pertaining to this tiller to the given string. Writes at most n characters, and returns the number of

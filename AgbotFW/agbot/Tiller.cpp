@@ -64,6 +64,8 @@ namespace agbot {
 		return true;
 	}
 
+	// NOWNOW make sure there's enough room to store two commands - if we only have
+	// room for one, (which may be quite likely) the tiller will stay down forever
 	void Tiller::killWeed() {
 		uint32_t delay;
 		// lowerTime = millis() + responseDelay - (raisedHeight - loweredHeight)*tillerLowerTime/100 - precision/2
@@ -129,7 +131,7 @@ namespace agbot {
 
 	size_t Tiller::serialize(char *str, size_t n) const {
 		updateActualHeight();
-		char targetStr[10];
+		char targetStr[8];
 		switch (targetHeight) {
 			case TillerCommand::STOP:
 				strcpy_P(targetStr, PSTR("STOP"));
@@ -150,6 +152,6 @@ namespace agbot {
 				sprintf_P(targetStr, PSTR("%d"), targetHeight);
 				break;
 		}
-		return snprintf_P(str, n, PSTR("{\"height\":%hhu,\"dh\":%hhd,\"target\":%s}"), actualHeight, getDH(), targetStr);
+		return snprintf_P(str, n, PSTR("{\"height\":%hhu,\"dh\":%hhd,\"target\":\"%s\"}"), actualHeight, getDH(), targetStr);
 	}
 }

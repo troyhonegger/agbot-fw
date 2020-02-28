@@ -10,22 +10,28 @@
 #include "Config.hpp"
 #include "Sprayer.hpp"
 
+#define SET_BIT(x, i)		((x) |=  (1<<(i)))
+#define UNSET_BIT(x, i)		((x) &= ~(1<<(i)))
+#define IS_SET(x, i)		(!!((x) & (1<<(i))))
+
 namespace agbot {
 	void Sprayer::begin(uint8_t id, Config const* config) {
-		state = ((id & 7) << 3) | static_cast<uint8_t>(SprayerState::Unset);
-		onTime = offTime = millis();
-		*config; // dereference seg faults if null
+		UNSET_BIT(state, 7); // status = OFF
+		state = id & 0xF;
+		if (config == nullptr) { // poor man's assert(config)
+			abort();
+		}
 		this->config = config;
 		pinMode(getPin(), OUTPUT);
 		digitalWrite(getPin(), OFF_VOLTAGE);
 	}
 
 	Sprayer::~Sprayer() {
-		writeStatus(OFF);
+		setActualStatus(OFF);
 		pinMode(getPin(), INPUT);
 	}
 
-	inline void Sprayer::writeStatus(bool status) {
+	inline void Sprayer::setActualStatus(bool status) {
 		if (getStatus() != status) {
 			if (status == ON) {
 				state |= 0x80;
@@ -37,87 +43,56 @@ namespace agbot {
 			}
 		}
 	}
-	inline void Sprayer::setDesiredStatus(bool status) {
-		if (status == ON) { state |= 0x40; }
-		else { state &= 0xBF; }
+
+	bool Sprayer::setStatus(bool status, uint32_t delay) {
+		uint32_t triggerTime = millis() + delay;
+		for (unsigned int i = 0; i < sizeof(timers) / sizeof(timers[0]); i++) {
+			if (timers[i].isSet && timeCmp(triggerTime, timers[i].time) <= 0) {
+				timers[i].stop();
+			}
+		}
+		if (delay) {
+			for (unsigned int i = 0; i < sizeof(timers) / sizeof(timers[0]); i++) {
+				if (!timers[i].isSet) {
+					timers[i].start(delay);
+					if (status) { SET_BIT(commandList, i); }
+					else { UNSET_BIT(commandList, i); }
+					goto foundSlot;
+				}
+			}
+			// error - didn't find a slot to put the command
+			return false;
+			foundSlot: ;
+		}
+		else {
+			setActualStatus(status);
+		}
+		return true;
 	}
 
-	void Sprayer::setMode(MachineMode mode) {
-		onTime = offTime = millis();
-		setDesiredStatus(OFF);
-		switch (mode) {
-			case MachineMode::Diag:
-				setState(SprayerState::Diag);
-				break;
-			case MachineMode::Run:
-				setState(SprayerState::ProcessOff);
-				break;
-		}
-	}
-
-	void Sprayer::scheduleSpray() {
-		bool isProcessing = false;
-		switch (getState()) {
-			case SprayerState::ProcessOff:
-			case SprayerState::ProcessOn:
-				isProcessing = true;
-				onTime = millis() + config->get(Setting::ResponseDelay) - config->get(Setting::Precision) / 2;
-				break;
-			case SprayerState::ProcessScheduled:
-				isProcessing = true;
-				break;
-		}
-
-		if (isProcessing) {
-			setState(SprayerState::ProcessScheduled);
-			offTime = millis() + config->get(Setting::ResponseDelay) + config->get(Setting::Precision) / 2;
-		}
-	}
-	void Sprayer::cancelSpray() {
-		if (getState() == SprayerState::ProcessScheduled || getState() == SprayerState::ProcessOn) {
-			onTime = offTime = millis();
-			setState(SprayerState::ProcessOff);
-			setDesiredStatus(OFF);
-		}
-	}
-
-	void Sprayer::stop(bool now, bool temporary) {
-		if (!temporary) { setDesiredStatus(OFF); }
-		if (now) { writeStatus(OFF); }
-	}
-
-	void Sprayer::setStatus(bool status) {
-		if (getState() == SprayerState::Diag) {
-			setDesiredStatus(status);
-		}
+	// NOWNOW make sure there's enough room to store two commands - if we only have
+	// room for one, (which may be quite likely) the sprayer will lock on forever
+	void Sprayer::killWeed() {
+		setStatus(ON, config->get(Setting::ResponseDelay) - config->get(Setting::Precision) / 2);
+		setStatus(OFF, config->get(Setting::ResponseDelay) + config->get(Setting::Precision) / 2);
 	}
 
 	void Sprayer::update() {
-		if (getState() == SprayerState::ProcessScheduled && isElapsed(onTime)) {
-			setState(SprayerState::ProcessOn);
-			setDesiredStatus(ON);
-		}
-		else if (getState() == SprayerState::ProcessOn && isElapsed(offTime)) {
-			setState(SprayerState::ProcessOff);
-			setDesiredStatus(OFF);
-		}
-
-		// reconcile "desired state" and actual, physical state
-		if (getDesiredStatus() != getStatus()) {
-			writeStatus(!getStatus());
+		// see if any commands are done waiting and ready to be executed.
+		for (unsigned int i = 0; i < sizeof(timers) / sizeof(timers[0]); i++) {
+			if (timers[i].isUp()) {
+				setActualStatus(IS_SET(commandList, i));
+				break;
+			}
 		}
 	}
 
 	size_t Sprayer::serialize(char* str, size_t n) const {
-		char buf[4] = "ON\0";
-		if (getStatus() == OFF) { buf[1] = 'F'; buf[2] = 'F'; } // OFF
-		SprayerState state = getState();
-		if (state != SprayerState::ProcessOn && state != SprayerState::ProcessScheduled) {
-			return snprintf(str, n, buf);
+		if (getStatus()) {
+			return snprintf_P(str, n, PSTR("{\"status\": \"ON\"}"));
 		}
 		else {
-			int32_t until = state == SprayerState::ProcessOn ? offTime - millis() : onTime - millis();
-			return snprintf(str, n, "%s %ld", buf, until);
+			return snprintf_P(str, n, PSTR("{\"status\": \"OFF\"}"));
 		}
 	}
 }

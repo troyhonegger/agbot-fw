@@ -112,9 +112,6 @@ static void modeHandler(HttpRequest const& request, HttpResponse& response) {
 				return;
 			}
 			agbot::currentMode = mode;
-			for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
-				agbot::sprayers[i].setMode(mode);
-			}
 		} break;
 		default:
 			methodNotAllowedHandler(request, response);
