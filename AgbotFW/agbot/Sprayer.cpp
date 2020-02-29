@@ -18,9 +18,7 @@ namespace agbot {
 	void Sprayer::begin(uint8_t id, Config const* config) {
 		UNSET_BIT(state, 7); // status = OFF
 		state = id & 0xF;
-		if (config == nullptr) { // poor man's assert(config)
-			abort();
-		}
+		assert(config);
 		this->config = config;
 		pinMode(getPin(), OUTPUT);
 		digitalWrite(getPin(), OFF_VOLTAGE);

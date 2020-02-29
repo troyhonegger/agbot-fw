@@ -4,6 +4,7 @@
 #include "Devices.hpp"
 #include "Http.hpp"
 #include "HttpApi.hpp"
+#include "Log.hpp"
 
 #include <string.h>
 
@@ -22,6 +23,13 @@ HttpServer server(ethernetSrvr, 4, httpHandler);
 #ifndef DEMO_MODE
 
 void setup() {
+#if LOG_LEVEL != LOG_LEVEL_OFF
+	Serial.begin(115200);
+	Log.begin(&Serial);
+#endif
+
+	LOG_DEBUG("Beginning setup...");
+
 	config.begin();
 	hitch.begin(&config);
 	for (uint8_t i = 0; i < Tiller::COUNT; i++) {
@@ -32,11 +40,6 @@ void setup() {
 	}
 	throttle.begin();
 
-	#ifdef SERIAL_DEBUG
-	Serial.begin(9600);
-	Serial.println("Serial debug mode ON");
-	#endif
-
 	uint8_t mac[6] = { 0xA8, 0x61, 0x0A, 0xAE, 0x11, 0xF6 };
 	uint8_t controllerIP[4] = {172, 21, 2, 1};//REVERT - should be { 192, 168, 4, 2 };
 	Ethernet.begin(mac, controllerIP);
@@ -44,6 +47,8 @@ void setup() {
 	Ethernet.setRetransmissionCount(3);
 	Ethernet.setRetransmissionTimeout(150);
 	server.begin();
+
+	LOG_INFO("Setup complete.");
 }
 
 /*

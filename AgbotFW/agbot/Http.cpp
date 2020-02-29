@@ -1,6 +1,7 @@
 ﻿#include "Http.hpp"
 
 #include "Common.hpp"
+#include "Log.hpp"
 
 typedef long ssize_t; // for some reason Arduino doesn't have this defined by default?
 
@@ -842,42 +843,14 @@ void HttpServer::serve(void) {
 			parseRequest(clients[i], connections[i]);
 		}
 		if (connections[i].state & HTTPCLIENT_STATUS_RCVD) {
-#ifdef SERIAL_DEBUG
-			Serial.print(F("Received HTTP Message: "));
-			Serial.println(connections[i].state);
-			Serial.print(F("Method = "));
-			Serial.print((uint16_t) connections[i].request.method);
-			Serial.print(F(", URI = \""));
-			Serial.print(connections[i].request.uri);
-			Serial.print(F("\", Version = "));
-			Serial.println((uint16_t) connections[i].request.version);
-			Serial.print(F("Headers ("));
-			Serial.print(connections[i].request.numHeaders);
-			Serial.println(')');
-			for (int j = 0; j < connections[i].request.numHeaders; j++) {
-				HttpHeader* hdr = &connections[i].request.headers[j];
-				Serial.print(F("\tHeader "));
-				Serial.print(j);
-				Serial.print(F(": key=\""));
-				char tmp = hdr->key[hdr->keyLen];
-				hdr->key[hdr->keyLen] = '\0';
-				Serial.print(hdr->key);
-				Serial.print(F("\" (len: "));
-				Serial.print(hdr->keyLen);
-				hdr->key[hdr->keyLen] = tmp;
-				Serial.print(F("); value=\""));
-				tmp = hdr->value[hdr->valueLen];
-				hdr->value[hdr->valueLen] = '\0';
-				Serial.print(hdr->value);
-				Serial.print(F("\" (len: "));
-				Serial.print(hdr->valueLen);
-				hdr->value[hdr->valueLen] = tmp;
-				Serial.println(')');
-			}
-			Serial.print(F("Request body (len = "));
-			Serial.print(connections[i].request.contentLength);
-			Serial.println(F("):"));
-			Serial.print(connections[i].request.content);
+#if LOG_LEVEL <= LOG_LEVEL_VERBOSE
+			LOG_VERBOSE("Received HTTP Message: State=[%x], Method=[%x], URI=[%s], Version=[%x]",
+							connections[i].state,
+							connections[i].request.method,
+							connections[i].request.uri,
+							connections[i].request.version);
+			Log.writeDetails_P(PSTR("Headers (%x)\n%s\n"), connections[i].request.numHeaders, connections[i].requestHeaders);
+			Log.writeDetails_P(PSTR("Request Body (len=%x):\n%s\n"), connections[i].request.contentLength, connections[i].request.content);
 #endif
 			// respond to the request using the provided handler, or a default error behavior.
 			handleRequest(clients[i], connections[i], handler);

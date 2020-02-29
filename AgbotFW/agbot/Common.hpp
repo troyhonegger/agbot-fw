@@ -14,14 +14,19 @@
 // Comment this line to use a static IP address of 10.0.0.2; un-comment to use DHCP
 #define DHCP
 
-// Comment this line for production; un-comment it to enable serial communication
-//#define SERIAL_DEBUG
-
 namespace agbot {
 	enum class MachineMode : uint8_t {
 		Run = 0, Diag = 1
 	};
 }
+
+void assertImpl(bool condition, const char* conditionStr, const char* file, int line);
+
+#ifdef DEBUG
+#define assert(x) assertImpl(x, PSTR(#x), PSTR(__FILE__), __LINE__)
+#else
+#define assert(x)
+#endif
 
 // returns: > 0 if t1 comes after t2; < 0 if t1 comes before t2; 0 if t1 equals t2
 inline bool timeCmp(unsigned long t1, unsigned long t2) {

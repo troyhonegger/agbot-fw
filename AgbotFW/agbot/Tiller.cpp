@@ -17,9 +17,7 @@
 namespace agbot {
 	void Tiller::begin(uint8_t id, Config const* config) {
 		state = (id & 3) << 4;
-		if (config == nullptr) { // poor man's assert(config)
-			abort();
-		}
+		assert(config);
 		targetHeight = STOP;
 		this->config = config;
 		pinMode(getRaisePin(), OUTPUT);

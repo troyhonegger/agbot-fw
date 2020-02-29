@@ -6,6 +6,19 @@
  */ 
 
 #include "Common.hpp"
+#include "Log.hpp"
+
+void assertImpl(bool condition, const char* conditionStr, const char* file, int line) {
+	if (!condition) {
+		LOG_ERROR("%S:%d - assert(%S) failed.", file, line, conditionStr);
+#ifdef ASSERT_FAIL_RETRY
+		delay(50); // approximately enough time to write the error message
+		asm("jmp 0x0"); // address zero is the "reset" interrupt vector
+#else
+		while(1);
+#endif
+	}
+}
 
 Timer::Timer() : time(0), isSet(false), wasSet(false) {}
 
