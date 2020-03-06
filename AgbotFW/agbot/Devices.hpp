@@ -21,6 +21,5 @@ namespace agbot {
 	extern Tiller tillers[Tiller::COUNT];
 	extern Sprayer sprayers[Sprayer::COUNT];
 	extern Throttle throttle;
-	extern MachineMode currentMode;
 }
 

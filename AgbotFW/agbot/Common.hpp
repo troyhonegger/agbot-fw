@@ -14,12 +14,6 @@
 // Comment this line to use a static IP address of 10.0.0.2; un-comment to use DHCP
 #define DHCP
 
-namespace agbot {
-	enum class MachineMode : uint8_t {
-		Run = 0, Diag = 1
-	};
-}
-
 void assertImpl(bool condition, const char* conditionStr, const char* file, int line);
 
 #ifdef DEBUG

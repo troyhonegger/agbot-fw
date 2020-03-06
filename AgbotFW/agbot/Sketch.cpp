@@ -15,7 +15,6 @@ Hitch agbot::hitch;
 Tiller agbot::tillers[Tiller::COUNT];
 Sprayer agbot::sprayers[Sprayer::COUNT];
 Throttle agbot::throttle;
-MachineMode agbot::currentMode = MachineMode::Run;
 
 EthernetServer ethernetSrvr(80);
 HttpServer server(ethernetSrvr, 4, httpHandler);

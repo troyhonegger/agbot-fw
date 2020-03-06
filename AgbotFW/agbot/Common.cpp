@@ -11,8 +11,11 @@
 void assertImpl(bool condition, const char* conditionStr, const char* file, int line) {
 	if (!condition) {
 		LOG_ERROR("%S:%d - assert(%S) failed.", file, line, conditionStr);
-#ifdef ASSERT_FAIL_RETRY
 		delay(50); // approximately enough time to write the error message
+
+		// TODO set all pins to inputs here to prevent outputs from being locked on
+
+#ifdef ASSERT_FAIL_RETRY
 		asm("jmp 0x0"); // address zero is the "reset" interrupt vector
 #else
 		while(1);

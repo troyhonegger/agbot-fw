@@ -20,40 +20,102 @@ This API does not specify how other components of the system
 #### GET `/`
 Returns `text/html` webpage
 
-#### GET `/api/mode`
-Returns `application/json` response that looks like `{"mode": "<mode>"}`, where `<mode>` is either `Diagnostics` or `Run`. The default is Run mode, and the mode can only be changed with a call to `PUT /api/mode` (see below)
-
-#### PUT `/api/mode`
-Expects `application/json` request body that looks like `{"mode": "<mode>"}`, where `<mode>` is either `Diagnostics` or `Run`.
-
 
 #### GET `/api/gps`
 TODO - flesh out. Will probably return `application/json`
 
 
 #### GET `/api/config/{setting}`
-Returns an integer (`application/json`). If `{setting}` is omitted, returns a JSON object containing all settings.
+Provides the value of the configuration setting `setting`. If `{setting}` is omitted, returns all configuration settings.  
+Response: 200 (OK), `application/json`
+```json
+GET /api/config
+=> {
+  "HitchAccuracy": 5,
+  "HitchLoweredHeight": 0,
+  "HitchRaisedHeight": 100,
+  ...
+}
+GET /api/config/HitchAccuracy
+=> 5
+```
 
 #### PUT `/api/config/{setting}`
-Expects the request body to contain an integer.
+`{setting}` should contain the name of the setting to configure.  
+Request body should be `application/json` and contain a single integer with the value of that setting.  
+Response: 204 (No Content)
 
 
 #### GET `/api/tillers/{id}`
-`{id}` is between 0 and 2. 0 represents the left tiller, 1 represents the middle tiller, and 2 represents the right tiller. Returns `application/json`
+`{id}` should be a number between 0 and 2.  
+0 represents the left tiller, 1 represents the middle tiller, and 2 represents the right tiller.  
+If `{id}` is omitted, all tillers should be returned as a JSON array.  
+Response: 200 (OK), `application/json`
+```json
+{
+  "actualHeight": "20",
+  "targetHeight": "LOWERED",
+  "dh": 0
+}
+
+"dh" is one of the following:
+ -1: lowering
+  0: stopped
+  1: raising
+"actualHeight" is an integer between 0 and 100
+  0: fully lowered
+  100: fully raised
+"targetHeight" is one of the following:
+  an integer between 0 (fully lowered) and 100 (fully raised)
+  "STOP": Tiller is stopped regardless of its height
+  "UP": Tiller is raising regardless of its height
+  "DOWN": Tiller is lowering regardless of its height
+  "LOWERED": Tiller wants to remain just below the surface.
+  "RAISING": Tiller wants to remain just above the surface.
+```
+
 
 #### PUT `/api/tillers/{id}`
-`{id}` is between 0 and 2. 0 represents the left tiller, 1 represents the middle tiller, and 2 represents the right tiller. If omitted, all tillers will be set together.
-Returns 400 if in diagnostics mode.
-TODO - define schema. Need to decide whether to allow targeting a given height or not.
+`{id}` should be a number between 0 and 2.  
+0 represents the left tiller, 1 represents the middle tiller, and 2 represents the right tiller.  
+If omitted, all tillers will be set together.  
+Expects: `application/json` object:
+```json
+{
+  // required. See documentation for GET request
+  "targetHeight": "STOP",
+  // optional - time delay in milliseconds. Default: 0
+  "delay": 500
+}
+```
+Response: 204 (No Content)
 
 
 #### GET `/api/sprayers/{id}`
-`{id}` is between 0 and 7. Returns `application/json`
+`{id}` should be a number between 0 and 7, or either `"left"` or `"right"`.  
+TODO - document mapping of IDs to physical sprayers.  
+If `{id}` is omitted, all sprayers should be returned as a JSON array.  
+Response: 200 (OK), `application/json`
+```json
+{
+  "status": "ON" // required. Either "ON" or "OFF"
+}
+```
+
 
 #### PUT `/api/sprayers/{id}`
-`{id}` is between 0 and 7, or one of `"left"` or `"right"`. If omitted, all sprayers will be set at once.
-Returns 400 if in diagnostics mode.
-TODO - define schema.
+`{id}` should be a number between 0 and 7, or either `"left"` or `"right"`.  
+TODO - document mapping of IDs to physical sprayers.
+If `{id}` is omitted, all sprayers should be set together.
+Expects: `application/json`:
+```json
+{
+  // required. Either "ON" or "OFF"
+  "status": "ON",
+  // optional: time delay in milliseconds. Default: 0
+  "delay": 500
+}
+```
 
 
 #### GET `/api/hitch`

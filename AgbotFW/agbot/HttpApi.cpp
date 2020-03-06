@@ -20,7 +20,6 @@ static char responseBody[256] = {0};
 // helper handlers called by httpHandler and its children
 static HttpHandler webpageHandler;
 static HttpHandler apiHandler;
-static HttpHandler modeHandler;
 static HttpHandler configHandler;
 static HttpHandler gpsHandler;
 static HttpHandler hitchHandler;
@@ -55,9 +54,6 @@ static void apiHandler(HttpRequest const& request, HttpResponse& response) {
 	if (!strncmp_P(request.uri, PSTR_AND_LENGTH("/api/weeds"))) {
 		weedHandler(request, response);
 	}
-	else if (!strncmp_P(request.uri, PSTR_AND_LENGTH("/api/mode"))) {
-		modeHandler(request, response);
-	}
 	else if (!strncmp_P(request.uri, PSTR_AND_LENGTH("/api/config"))) {
 		configHandler(request, response);
 	}
@@ -78,6 +74,7 @@ static void apiHandler(HttpRequest const& request, HttpResponse& response) {
 	}
 }
 
+/*
 static void modeHandler(HttpRequest const& request, HttpResponse& response) {
 	switch (request.method) {
 		case HttpMethod::GET:
@@ -117,6 +114,7 @@ static void modeHandler(HttpRequest const& request, HttpResponse& response) {
 			methodNotAllowedHandler(request, response);
 	}
 }
+*/
 
 static void configHandler(HttpRequest const& request, HttpResponse& response) {
 	if (request.method != HttpMethod::GET && request.method != HttpMethod::PUT) {
