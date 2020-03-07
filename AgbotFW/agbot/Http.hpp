@@ -2,9 +2,7 @@
 
 #include <Arduino.h>
 
-//#include "Ethernet.h"
-// TODO: this is ugly, but it's the only way Atmel studio currently recognizes the header. How to add Ethernet.h to the include path?
-#include "../ArduinoCore/include/libraries/Ethernet/src/Ethernet.h"
+#include <Ethernet.h>
 
 #define HTTP_HEADER_CNT			(8)
 
