@@ -201,7 +201,58 @@ static void hitchHandler(HttpRequest const& request, HttpResponse& response) {
 }
 
 static void tillerHandler(HttpRequest const& request, HttpResponse& response) {
-	notImplementedHandler(request, response);
+	switch (request.method) {
+		case HttpMethod::GET: {
+			char* idStr = request.uri + sizeof("/api/tillers");
+			if (*idStr && *++idStr) {
+				int id = atoi(idStr);
+				if (id < 0 || id >= Tiller::COUNT) {
+					response.responseCode = 400;
+					response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("id must be between 0 and %d - was '%s'"), Tiller::COUNT, idStr);
+					response.content = responseBody;
+				}
+				else {
+					strcpy_P(responseHeaders, PSTR("Content-Type: application/json"));
+					response.headers[0].key = responseHeaders;
+					response.headers[0].keyLen = 12;
+					response.headers[0].value = &responseHeaders[14];
+					response.headers[0].valueLen = 16;
+					response.contentLength = tillers[id].serialize(responseBody, sizeof(responseBody) - 1);
+					response.content = responseBody;
+				}
+			}
+			else {
+				strcpy_P(responseHeaders, PSTR("Content-Type: application/json"));
+				response.headers[0].key = responseHeaders;
+				response.headers[0].keyLen = 12;
+				response.headers[0].value = &responseHeaders[14];
+				response.headers[0].valueLen = 16;
+
+				size_t len = 1;
+				*responseBody = '['; // opening array element
+				for (int i = 0; i < Tiller::COUNT; i++) {
+					if (len < sizeof(responseBody) - 1) {
+						len += tillers[i].serialize(responseBody + len, sizeof(responseBody) - 1 - len);
+
+						if (len < sizeof(responseBody) - 1 && i + 1 < Tiller::COUNT) {
+							responseBody[len++] = ',';
+						}
+					}
+				}
+				if (len < sizeof(responseBody) - 1) {
+					responseBody[len++] = ']';
+				}
+				responseBody[len] = '\0';
+
+				response.contentLength = len;
+				response.content = responseBody;
+			}
+		} break;
+		case HttpMethod::PUT: {
+			notImplementedHandler(request, response); //TODO
+		} break;
+		default: methodNotAllowedHandler(request, response);
+	}
 }
 
 static void sprayerHandler(HttpRequest const& request, HttpResponse& response) {
