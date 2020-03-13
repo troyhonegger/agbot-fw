@@ -8,13 +8,11 @@
 
 #include <string.h>
 
-using namespace agbot;
-
-Config agbot::config;
-Hitch agbot::hitch;
-Tiller agbot::tillers[Tiller::COUNT];
-Sprayer agbot::sprayers[Sprayer::COUNT];
-Throttle agbot::throttle;
+Config config;
+Hitch hitch;
+Tiller tillers[Tiller::COUNT];
+Sprayer sprayers[Sprayer::COUNT];
+Throttle throttle;
 
 EthernetServer ethernetSrvr(80);
 HttpServer server(ethernetSrvr, 4, httpHandler);

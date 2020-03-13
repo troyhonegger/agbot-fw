@@ -15,11 +15,9 @@
 #include "Sprayer.hpp"
 #include "Throttle.hpp"
 
-namespace agbot {
-	extern Config config;
-	extern Hitch hitch;
-	extern Tiller tillers[Tiller::COUNT];
-	extern Sprayer sprayers[Sprayer::COUNT];
-	extern Throttle throttle;
-}
+extern Config config;
+extern Hitch hitch;
+extern Tiller tillers[Tiller::COUNT];
+extern Sprayer sprayers[Sprayer::COUNT];
+extern Throttle throttle;
 

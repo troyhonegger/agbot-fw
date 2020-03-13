@@ -31,10 +31,10 @@
 // Since the API only speaks when spoken to, we can get away with one message buffer
 // for both incoming and outgoing messages. Messages are read into here and parsed;
 // if a response is merited, it is copied back into the message buffer and sent
-static char messageBuffer[agbot::EthernetApi::MAX_CLIENTS][agbot::EthernetApi::MAX_MESSAGE_SIZE] = { 0 };
-static char responseBuffer[agbot::EthernetApi::MAX_MESSAGE_SIZE] = { 0 };
-static EthernetClient clients[agbot::EthernetApi::MAX_CLIENTS];
-static uint8_t writePosns[agbot::EthernetApi::MAX_CLIENTS] = { 0 };
+static char messageBuffer[EthernetApi::MAX_CLIENTS][EthernetApi::MAX_MESSAGE_SIZE] = { 0 };
+static char responseBuffer[EthernetApi::MAX_MESSAGE_SIZE] = { 0 };
+static EthernetClient clients[EthernetApi::MAX_CLIENTS];
+static uint8_t writePosns[EthernetApi::MAX_CLIENTS] = { 0 };
 static EthernetServer server(8010); // use port 8010
 static uint8_t numClients = 0;
 
@@ -90,7 +90,6 @@ static const char ParseError_TillerDiag[] PROGMEM = "PARSE ERROR: Tiller value m
 static const char ParseError_SprayerDiag[] PROGMEM = "PARSE ERROR: Sprayer value must be 'ON' or 'OFF'";
 static const char ParseError_HitchDiag[] PROGMEM = "PARSE ERROR: Hitch value must be 'STOP' or an integer";
 
-namespace agbot{
 namespace EthernetApi {
 	void begin() {
 		// Note: if using a different Ethernet shield, change this to the value of that shield
@@ -112,7 +111,7 @@ namespace EthernetApi {
 	static bool parseMessage(Command&, char const*, char*);
 	static void wipeBuffer(char*, size_t);
 
-	uint8_t read(void (*processor)(agbot::EthernetApi::Command const&, char*)) {
+	uint8_t read(void (*processor)(EthernetApi::Command const&, char*)) {
 		// check for new clients, if we have space for them (otherwise, ignore them)
 		if (numClients < MAX_CLIENTS) {
 			EthernetClient newClient = server.accept();
@@ -339,7 +338,7 @@ namespace EthernetApi {
 				command.data.diag.type = PeripheralType::Tiller;
 				command.data.diag.id = byteData;
 				if (!strcmp_P(data + 12, STOP_STR)) {
-					command.data.diag.value = agbot::Tiller::STOP;
+					command.data.diag.value = Tiller::STOP;
 					return true;
 				}
 				else if (sscanf_P(data + 12, ParseByte_FMT_STR, &byteData) == 1) {
@@ -406,6 +405,5 @@ namespace EthernetApi {
 	static inline bool resetCount(int* i) { *i = 0; return true; }
 
 	static inline void wipeBuffer(char* str, size_t size) { memset(str, 0, size); }
-}
 }
 #endif // if 0

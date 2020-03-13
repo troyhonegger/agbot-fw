@@ -11,7 +11,6 @@
 #include "Common.hpp"
 #include "Config.hpp"
 
-namespace agbot {
 namespace EthernetApi {
 	const uint8_t MAX_MESSAGE_SIZE = 64;
 	const uint8_t MAX_CLIENTS = 8;
@@ -82,8 +81,7 @@ namespace EthernetApi {
 	// all connected clients. The most significant nibble of read()'s return value is the number of invalid
 	// messages found (i.e. processor() could not be called because the message could not be parsed). The
 	// least significant nibble is the number of valid messages found.
-	uint8_t read(void (*processor)(agbot::EthernetApi::Command const&, char*));
-}
+	uint8_t read(void (*processor)(EthernetApi::Command const&, char*));
 }
 
 #endif // if 0

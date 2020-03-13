@@ -16,9 +16,9 @@
 
 #ifdef DEMO_MODE
 
-extern agbot::Config config;
-extern agbot::Tiller tillers[];
-extern agbot::Sprayer sprayers[];
+extern Config config;
+extern Tiller tillers[];
+extern Sprayer sprayers[];
 
 static bool sprayersInDiagMode = false;
 static bool sprayersInProcessMode = false;
@@ -45,23 +45,23 @@ void displayMenu(void) {
 
 void setup(void) {
 	config.begin();
-	config.set(agbot::Setting::Precision, 500);
-	config.set(agbot::Setting::ResponseDelay, 1500);
-	config.set(agbot::Setting::TillerLowerTime, 500);
-	config.set(agbot::Setting::TillerRaiseTime, 0);
-	config.set(agbot::Setting::TillerAccuracy, 5);
-	config.set(agbot::Setting::TillerRaisedHeight, 100);
-	config.set(agbot::Setting::TillerLoweredHeight, 0);
-	config.set(agbot::Setting::KeepAliveTimeout, 65535);
-	config.set(agbot::Setting::HitchAccuracy, 5);
-	config.set(agbot::Setting::HitchRaisedHeight, 100);
-	config.set(agbot::Setting::HitchLoweredHeight, 0);
+	config.set(Setting::Precision, 500);
+	config.set(Setting::ResponseDelay, 1500);
+	config.set(Setting::TillerLowerTime, 500);
+	config.set(Setting::TillerRaiseTime, 0);
+	config.set(Setting::TillerAccuracy, 5);
+	config.set(Setting::TillerRaisedHeight, 100);
+	config.set(Setting::TillerLoweredHeight, 0);
+	config.set(Setting::KeepAliveTimeout, 65535);
+	config.set(Setting::HitchAccuracy, 5);
+	config.set(Setting::HitchRaisedHeight, 100);
+	config.set(Setting::HitchLoweredHeight, 0);
 	//estop.begin();
 	//hitch.begin(&config);
-	for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
+	for (uint8_t i = 0; i < Tiller::COUNT; i++) {
 		tillers[i].begin(i, &config);
 	}
-	for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
+	for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
 		sprayers[i].begin(i, &config);
 	}
 	Serial.begin(9600);
@@ -76,38 +76,38 @@ void loop(void) {
 			case '0': // Sprayers enter diag mode
 				sprayersInDiagMode = true;
 				sprayersInProcessMode = false;
-				for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
-					sprayers[i].setMode(agbot::MachineMode::Diag);
+				for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
+					sprayers[i].setMode(MachineMode::Diag);
 				}
 				Serial.print(F("0. Sprayers are now in diag mode\r\n"));
 				break;
 			case '1': // Tillers enter diag mode
 				tillersInDiagMode = true;
 				tillersInProcessMode = false;
-				for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
-					tillers[i].setMode(agbot::MachineMode::Diag);
+				for (uint8_t i = 0; i < Tiller::COUNT; i++) {
+					tillers[i].setMode(MachineMode::Diag);
 				}
 				Serial.print(F("1. Tillers are now in diag mode\r\n"));
 				break;
 			case '2': // Sprayers enter process mode
 				sprayersInDiagMode = false;
 				sprayersInProcessMode = true;
-				for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
-					sprayers[i].setMode(agbot::MachineMode::Process);
+				for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
+					sprayers[i].setMode(MachineMode::Process);
 				}
 				Serial.print(F("2. Sprayers are now in process mode\r\n"));
 				break;
 			case '3': // Tillers enter process mode
 				tillersInDiagMode = false;
 				tillersInProcessMode = true;
-				for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
-					tillers[i].setMode(agbot::MachineMode::Process);
+				for (uint8_t i = 0; i < Tiller::COUNT; i++) {
+					tillers[i].setMode(MachineMode::Process);
 				}
 				Serial.print(F("3. Tillers are now in process mode\r\n"));
 				break;
 			case '4': // Schedule sprayer spray
 				if (sprayersInProcessMode) {
-					for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
+					for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
 						sprayers[i].scheduleSpray();
 					}
 					Serial.print(F("4. Spray scheduled\r\n"));
@@ -116,7 +116,7 @@ void loop(void) {
 				break;
 			case '5': // Schedule tiller lower
 				if (tillersInProcessMode) {
-					for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
+					for (uint8_t i = 0; i < Tiller::COUNT; i++) {
 						tillers[i].scheduleLower();
 					}
 					Serial.print(F("5. Tiller lower scheduled\r\n"));
@@ -125,8 +125,8 @@ void loop(void) {
 				break;
 			case '6': // Sprayer diag on
 				if (sprayersInDiagMode) {
-					for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
-						sprayers[i].setStatus(agbot::Sprayer::ON);
+					for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
+						sprayers[i].setStatus(Sprayer::ON);
 					}
 					Serial.print(F("6. Sprayers on\r\n"));
 				}
@@ -134,8 +134,8 @@ void loop(void) {
 				break;
 			case '7': // Sprayer diag off
 				if (sprayersInDiagMode) {
-					for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
-						sprayers[i].setStatus(agbot::Sprayer::OFF);
+					for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
+						sprayers[i].setStatus(Sprayer::OFF);
 					}
 					Serial.print(F("7. Sprayers off\r\n"));
 				}
@@ -143,7 +143,7 @@ void loop(void) {
 				break;
 			case '8': // Tiller diag raise
 				if (tillersInDiagMode) {
-					for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
+					for (uint8_t i = 0; i < Tiller::COUNT; i++) {
 						tillers[i].setTargetHeight(100);
 					}
 					Serial.print(F("8. Tillers raising\r\n"));
@@ -152,7 +152,7 @@ void loop(void) {
 				break;
 			case '9': // Tiller diag lower
 				if (tillersInDiagMode) {
-					for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
+					for (uint8_t i = 0; i < Tiller::COUNT; i++) {
 						tillers[i].setTargetHeight(0);
 					}
 					Serial.print(F("9. Tillers lowering\r\n"));
@@ -162,8 +162,8 @@ void loop(void) {
 			case 'a': // Tiller diag stop
 			case 'A':
 				if (tillersInDiagMode) {
-					for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
-						tillers[i].setTargetHeight(agbot::Tiller::STOP);
+					for (uint8_t i = 0; i < Tiller::COUNT; i++) {
+						tillers[i].setTargetHeight(Tiller::STOP);
 					}
 					Serial.print(F("a. Tillers stopped\r\n"));
 				}
@@ -172,7 +172,7 @@ void loop(void) {
 			case 'b': // Tiller diag target 50%
 			case 'B':
 				if (tillersInDiagMode) {
-					for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
+					for (uint8_t i = 0; i < Tiller::COUNT; i++) {
 						tillers[i].setTargetHeight(50);
 					}
 					Serial.print(F("b. Tillers set to target 50% height\r\n"));
@@ -192,10 +192,10 @@ void loop(void) {
 				break;
 		}
 	}
-	for (uint8_t i = 0; i < agbot::Tiller::COUNT; i++) {
+	for (uint8_t i = 0; i < Tiller::COUNT; i++) {
 		tillers[i].update();
 	}
-	for (uint8_t i = 0; i < agbot::Sprayer::COUNT; i++) {
+	for (uint8_t i = 0; i < Sprayer::COUNT; i++) {
 		sprayers[i].update();
 	}
 }
