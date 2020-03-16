@@ -49,8 +49,7 @@ class Config {
 		static const size_t SETTING_SIZE = sizeof(uint16_t);
 		static const uint8_t NUM_SETTINGS = 11;
 	private:
-		// Note: if memory becomes an issue we can save 6 bytes here (at some maintainability cost) by packing the 1-byte settings
-		// together instead of allocating 2 bytes for everything.
+		// in-RAM buffer for all settings
 		uint16_t settings[NUM_SETTINGS];
 
 		// disallow copy constructor
@@ -64,9 +63,20 @@ class Config {
 		void begin();
 
 		// Returns the specified setting from the cache.
-		inline uint16_t get(Setting setting) const { return settings[static_cast<uint8_t>(setting)]; }
+		inline uint16_t get(Setting setting) const {
+			if (static_cast<uint8_t>(setting) >= NUM_SETTINGS) {
+				return 0;
+			}
+			return settings[static_cast<uint8_t>(setting)];
+		}
 
 		// Writes the specified setting value to EEPROM memory and updates the cache. There is some overhead
 		// associated with this and, in general, it should only be done upon request over the API.
-		void set(Setting setting, uint16_t value);
+		// Returns true upon success, false if setting is invalid or value is out of bounds
+		bool set(Setting setting, uint16_t value);
 };
+
+const char* settingToString(Setting); // Returns a PROGMEM string containing the string representation of the setting.
+bool stringToSetting(const char*, Setting&); // Accepts a non-PROGMEM string. returns true if setting is valid, false otherwise
+uint16_t maxSettingValue(Setting);
+uint16_t minSettingValue(Setting);

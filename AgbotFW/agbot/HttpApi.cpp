@@ -82,7 +82,7 @@ static void configHandler(HttpRequest const& request, HttpResponse& response) {
 	}
 	else {
 		const char* settingStr = request.uri + sizeof("/api/config") - 1;
-		if (!*settingStr && request.method == HttpMethod::GET) {
+		if ((!*settingStr || *settingStr == '?') && request.method == HttpMethod::GET) {
 			response.responseCode = 200;
 			const char *format = PSTR("{\n"
 				"\t\"HitchAccuracy\": %d,\n"
@@ -109,59 +109,20 @@ static void configHandler(HttpRequest const& request, HttpResponse& response) {
 				config.get(Setting::TillerRaiseTime));
 			response.content = responseBody;
 		}
-		else {
+		else if (*settingStr == '/') {
+			settingStr++;
+			// ignore the query string if necessary to make sure the URI path is null-terminated
+			char *query = strchr(settingStr, '?');
+			if (query) {
+				*query = '\0';
+			}
 			Setting setting;
-			uint16_t minValue = 0;
-			uint16_t maxValue = 0xFFFF;
-			if (!strncmp_P(settingStr, PSTR_AND_LENGTH("/HitchAccuracy"))) {
-				setting = Setting::HitchAccuracy;
-				minValue = 0;
-				maxValue = 100;
-			}
-			else if (!strncmp_P(settingStr, PSTR_AND_LENGTH("/HitchLoweredHeight"))) {
-				setting = Setting::HitchLoweredHeight;
-				minValue = 0;
-				maxValue = 100;
-			}
-			else if (!strncmp_P(settingStr, PSTR_AND_LENGTH("/HitchRaisedHeight"))) {
-				setting = Setting::HitchRaisedHeight;
-				minValue = 0;
-				maxValue = 100;
-			}
-			else if (!strncmp_P(settingStr, PSTR_AND_LENGTH("/Precision"))) {
-				setting = Setting::Precision;
-				minValue = 0;
-				maxValue = 100;
-			}
-			else if (!strncmp_P(settingStr, PSTR_AND_LENGTH("/ResponseDelay"))) {
-				setting = Setting::ResponseDelay;
-				minValue = 0;
-				maxValue = 0xFFFF;
-			}
-			else if (!strncmp_P(settingStr, PSTR_AND_LENGTH("/TillerAccuracy"))) {
-				setting = Setting::TillerAccuracy;
-				minValue = 0;
-				maxValue = 100;
-			}
-			else if (!strncmp_P(settingStr, PSTR_AND_LENGTH("/TillerLoweredHeight"))) {
-				setting = Setting::TillerLoweredHeight;
-				minValue = 0;
-				maxValue = 100;
-			}
-			else if (!strncmp_P(settingStr, PSTR_AND_LENGTH("/TillerLowerTime"))) {
-				setting = Setting::TillerLowerTime;
-				minValue = 0;
-				maxValue = 0xFFFF;
-			}
-			else if (!strncmp_P(settingStr, PSTR_AND_LENGTH("/TillerRaisedHeight"))) {
-				setting = Setting::TillerRaisedHeight;
-				minValue = 0;
-				maxValue = 100;
-			}
-			else if (!strncmp_P(settingStr, PSTR_AND_LENGTH("/TillerRaiseTime"))) {
-				setting = Setting::TillerRaiseTime;
-				minValue = 0;
-				maxValue = 0xFFFF;
+
+			uint16_t minValue;
+			uint16_t maxValue;
+			if (stringToSetting(settingStr, setting)) {
+				minValue = minSettingValue(setting);
+				maxValue = maxSettingValue(setting);
 			}
 			else {
 				response.responseCode = 400;
@@ -188,6 +149,9 @@ static void configHandler(HttpRequest const& request, HttpResponse& response) {
 					response.responseCode = 204;
 				}
 			}
+		}
+		else {
+			notFoundHandler(request, response);
 		}
 	}
 }

@@ -63,18 +63,6 @@ static uint8_t GetState_Hitch_STR_LEN = strlen_P(GetState_Hitch_STR);
 MAKE_CONST_STR(Processing);
 MAKE_CONST_STR(Diagnostics);
 
-MAKE_CONST_STR(Precision);
-MAKE_CONST_STR(ResponseDelay);
-MAKE_CONST_STR(KeepAliveTimeout);
-MAKE_CONST_STR(TillerRaiseTime);
-MAKE_CONST_STR(TillerLowerTime);
-MAKE_CONST_STR(TillerRaisedHeight);
-MAKE_CONST_STR(TillerLoweredHeight);
-MAKE_CONST_STR(TillerAccuracy);
-MAKE_CONST_STR(HitchRaisedHeight);
-MAKE_CONST_STR(HitchLoweredHeight);
-MAKE_CONST_STR(HitchAccuracy);
-
 MAKE_CONST_STR(Hitch);
 MAKE_CONST_STR_WITH_LEN(ON);
 MAKE_CONST_STR_WITH_LEN(OFF);
@@ -107,7 +95,6 @@ namespace EthernetApi {
 	}
 
 	static bool resetCount(int*);
-	static bool parseSetting(Command&, char const*);
 	static bool parseMessage(Command&, char const*, char*);
 	static void wipeBuffer(char*, size_t);
 
@@ -193,54 +180,6 @@ namespace EthernetApi {
 		return retVal;
 	}
 
-	static bool parseSetting(Setting& setting, char const* settingStr) {
-		if (!strcmp_P(settingStr, Precision_STR)) {
-			setting = Setting::Precision;
-			return true;
-		}
-		else if (!strcmp_P(settingStr, KeepAliveTimeout_STR)) {
-			setting = Setting::KeepAliveTimeout;
-			return true;
-		}
-		else if (!strcmp_P(settingStr, ResponseDelay_STR)) {
-			setting = Setting::ResponseDelay;
-			return true;
-		}
-		else if (!strcmp_P(settingStr, TillerRaiseTime_STR)) {
-			setting = Setting::TillerRaiseTime;
-			return true;
-		}
-		else if (!strcmp_P(settingStr, TillerLowerTime_STR)) {
-			setting = Setting::TillerLowerTime;
-			return true;
-		}
-		else if (!strcmp_P(settingStr, TillerAccuracy_STR)) {
-			setting = Setting::TillerAccuracy;
-			return true;
-		}
-		else if (!strcmp_P(settingStr, TillerRaisedHeight_STR)) {
-			setting = Setting::TillerRaisedHeight;
-			return true;
-		}
-		else if (!strcmp_P(settingStr, TillerLoweredHeight_STR)) {
-			setting = Setting::TillerLoweredHeight;
-			return true;
-		}
-		else if (!strcmp_P(settingStr, HitchAccuracy_STR)) {
-			setting = Setting::HitchAccuracy;
-			return true;
-		}
-		else if (!strcmp_P(settingStr, HitchRaisedHeight_STR)) {
-			setting = Setting::HitchRaisedHeight;
-			return true;
-		}
-		else if (!strcmp_P(settingStr, HitchLoweredHeight_STR)) {
-			setting = Setting::HitchLoweredHeight;
-			return true;
-		}
-		else { return false; }
-	}
-
 	static bool parseMessage(Command& command, char const* message, char* response) {
 		// used to hold sscanf matches
 		char data[20] = {0};
@@ -299,7 +238,7 @@ namespace EthernetApi {
 			else if (resetCount(&charsRead) && (sscanf_P(message, GetState_Configuration_FMT_STR, data, &charsRead) == 1) && charsRead) {
 				command.data.query.type = QueryType::Configuration;
 				Setting setting;
-				if (parseSetting(setting, data)) {
+				if (stringToSetting(setting, data)) {
 					command.data.query.value = static_cast<uint8_t>(setting);
 					return true;
 				}
@@ -322,7 +261,7 @@ namespace EthernetApi {
 		else if (sscanf_P(message, SetConfig_FMT_STR, data, &intData) == 2) {
 			command.type = CommandType::SetConfig;
 			command.data.config.value = intData;
-			if (parseSetting(command.data.config.setting, data)) { return true; }
+			if (stringToSetting(command.data.config.setting, data)) { return true; }
 			else {
 				strcpy_P(response, ParseError_UnrecognizedSetting);
 				strcat(response, data);
