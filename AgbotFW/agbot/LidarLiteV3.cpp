@@ -165,9 +165,20 @@ void LidarLiteV3::update(void) {
 
 
 void LidarLiteBank::begin(void) {
-	//TODO
+	numInitialized = 0;
+	for (uint8_t i = 0; i < NUM_SENSORS; i++) {
+		sensors[i].begin(i);
+	}
 }
 
 void LidarLiteBank::update(void) {
-	//TODO
+	for (int i = 0; i < numInitialized; i++) {
+		sensors[i].update();
+	}
+	if (numInitialized < NUM_SENSORS) {
+		sensors[numInitialized].update();
+		if (sensors[numInitialized].isInitialized()) {
+			numInitialized++;
+		}
+	}
 }

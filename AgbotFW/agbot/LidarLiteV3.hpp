@@ -32,7 +32,11 @@
 #include "Common.hpp"
 
 // TODO: would like to include a config setting for update speed in Hz. This may
-// require changes to the config class, to select certain valid settings at compile time
+// require some more architecture in place, to define target platform at compile time.
+// This may also require some mechanism to "spread the load" across different sensors.
+// For example, if the update frequency is 100Hz, we want each of the sensors to update
+// themselves at slightly different times over any 10ms interval, to improve
+// responsiveness elsewhere in the system
 
 class LidarLiteV3 {
 	static const uint8_t DEFAULT_ADDRESS = 0x62; // defined by hardware. Initial I2C address of a LidarLite upon power up
