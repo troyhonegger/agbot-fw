@@ -296,6 +296,12 @@
     <Compile Include="HttpApi.hpp">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="jsmn.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="jsmn.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="LidarLiteV3.cpp">
       <SubType>compile</SubType>
     </Compile>
