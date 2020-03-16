@@ -79,7 +79,7 @@ extern LogClass Log;
 #endif
 
 #if LOG_LEVEL <= LOG_LEVEL_VERBOSE
-#define LOG_VERBOSE(format, ...)		Log.write_P(LOG_LEVEL_VERBOSE, PSTR(format), __VA_ARGS__)
+#define LOG_VERBOSE(format, ...)		Log.write_P(LOG_LEVEL_VERBOSE, PSTR(format), ## __VA_ARGS__)
 #else
 #define LOG_VERBOSE(format, ...)
 #endif
