@@ -7,6 +7,7 @@
 #include "Log.hpp"
 
 #include <string.h>
+#include <SparkFun_Ublox_Arduino_Library.h>
 
 Config config;
 Hitch hitch;

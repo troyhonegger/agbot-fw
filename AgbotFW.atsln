@@ -7,6 +7,8 @@ Project("{E66E83B9-2572-4076-B26E-6BE79FF3018A}") = "agbot", "AgbotFW\agbot\agbo
 EndProject
 Project("{E66E83B9-2572-4076-B26E-6BE79FF3018A}") = "ArduinoCore", "AgbotFW\ArduinoCore\ArduinoCore.cppproj", "{01B03BAB-4C98-4D6B-ADFE-74061628708D}"
 EndProject
+Project("{E66E83B9-2572-4076-B26E-6BE79FF3018A}") = "SparkFun_Ublox_Arduino_Library", "AgbotFW\SparkFun_Ublox_Arduino_Library\SparkFun_Ublox_Arduino_Library.cppproj", "{CFD0B0F7-CB86-4271-9947-E41477282A9C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|AVR = Debug|AVR
@@ -17,10 +19,14 @@ Global
 		{DCE6C7E3-EE26-4D79-826B-08594B9AD897}.Debug|AVR.Build.0 = Debug|AVR
 		{DCE6C7E3-EE26-4D79-826B-08594B9AD897}.Release|AVR.ActiveCfg = Release|AVR
 		{DCE6C7E3-EE26-4D79-826B-08594B9AD897}.Release|AVR.Build.0 = Release|AVR
-		{01B03BAB-4C98-4D6B-ADFE-74061628708D}.Debug|AVR.ActiveCfg = Debug|AVR
-		{01B03BAB-4C98-4D6B-ADFE-74061628708D}.Debug|AVR.Build.0 = Debug|AVR
+		{01B03BAB-4C98-4D6B-ADFE-74061628708D}.Debug|AVR.ActiveCfg = Release|AVR
+		{01B03BAB-4C98-4D6B-ADFE-74061628708D}.Debug|AVR.Build.0 = Release|AVR
 		{01B03BAB-4C98-4D6B-ADFE-74061628708D}.Release|AVR.ActiveCfg = Release|AVR
 		{01B03BAB-4C98-4D6B-ADFE-74061628708D}.Release|AVR.Build.0 = Release|AVR
+		{CFD0B0F7-CB86-4271-9947-E41477282A9C}.Debug|AVR.ActiveCfg = Release|AVR
+		{CFD0B0F7-CB86-4271-9947-E41477282A9C}.Debug|AVR.Build.0 = Release|AVR
+		{CFD0B0F7-CB86-4271-9947-E41477282A9C}.Release|AVR.ActiveCfg = Release|AVR
+		{CFD0B0F7-CB86-4271-9947-E41477282A9C}.Release|AVR.Build.0 = Release|AVR
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
