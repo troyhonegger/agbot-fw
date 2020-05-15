@@ -1,0 +1,29 @@
+New idea for tiller interface:
+
+Tiller looks state currently looks roughly like this:
+    -height (0-100)
+    -targetHeight (0-100)
+    -dh (-1,0,1)
+    -until (0-65535, or None for indefinitely)
+
+
+I want to be able to stop the tiller without putting it into diag mode
+What if I control the tiller with a sequence of commands?
+    Examples:
+        "starting now, target height 10"
+        "starting in 100ms, target height 90"
+    Commands are added to an unordered list.
+    Notifications about weeds just add two commands to this list: lower at time X and raise at time X + Y
+    Target height can be "STOP" or a number between 0 and 100
+        May need to add more pseudo-heights
+            Examples: "UP" for always up, "DOWN" for always down, "LOWERED" for in the dirt (height may depend on height sensor),
+            "RAISED" for just (barely) above the dirt (height may depend on height sensor)
+        One more weird exception: we don't want the tiller to be jittering up and down if there are multiple weeds in a row.
+            To that end: every incoming timer should supersede all timers that trigger after it.
+            This makes the order of insertion important - you have to schedule the first command (i.e. lower), THEN the second (i.e. raise).
+
+Sprayers: same thing, but simpler, because there's no "target height". Commands look like "ON in 400ms", "OFF in 600ms", etc
+Hitch: same thing, but you don't need a command list because there are no delays and there's only one command at a time.
+    Commands look like "UP", "STOP", "DOWN", "RAISED", "LOWERED", or 0-100 (and maybe not even all of those)
+
+Throttle: I'm not sure what this should look like.
