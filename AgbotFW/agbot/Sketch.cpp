@@ -144,7 +144,24 @@ void messageProcessor(EthernetApi::Command const& command, char* response) {
 	}
 }*/
 
+#ifdef TIMING_ANALYSIS
+static uint32_t starttime;
+static uint32_t lastprint;
+static uint32_t ncycles;
+// counts measures response times on a log scale.
+static uint32_t counts[33];
+#endif
+
 void loop() {
+#ifdef TIMING_ANALYSIS
+	if (!starttime) { // should run on first loop only
+		starttime = micros();
+		if (!lastprint) {
+			lastprint = starttime;
+		}
+	}
+#endif
+
 	server.serve();
 	
 	//hitch.getActualHeight();
@@ -159,6 +176,35 @@ void loop() {
 	if (throttleUp) { throttle.up(); }
 	else { throttle.down(); }
 	throttle.update();
+
+#ifdef TIMING_ANALYSIS
+	{
+		ncycles++;
+		uint32_t time = micros() - starttime;
+		starttime += time;
+		uint8_t i = 0;
+		while (time) { // compute ceil(log2(time)) for logging
+			time >>= 1;
+			i++;
+		}
+		counts[i]++;
+		if (starttime - lastprint >= 1000000UL) {
+			// get median cycle time by computing a cumulative sum until n = ncycles/2
+			uint32_t n;
+			for (i = 0, n = 0; n < (ncycles >> 1); i++) {
+				n += counts[i];
+			}
+			// get max cycle time by scanning counts from the back
+			uint8_t maxi;
+			for (maxi = 32; maxi && !counts[maxi]; maxi--);
+			LOG_INFO("Cycles: %ldHz; max 2^%dus, median 2^%dus", ncycles, maxi, i);
+
+			memset(counts, 0, sizeof(counts));
+			lastprint = starttime;
+			ncycles = 0;
+		}
+	}
+#endif
 }
 
 #endif // DEMO_MODE

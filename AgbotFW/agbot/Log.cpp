@@ -9,12 +9,12 @@
 
 #include "Common.hpp"
 
-static const char VERBOSE_PREFIX_FORMAT[] PROGMEM =	"(%09d) VERBOSE: ";
-static const char DEBUG_PREFIX_FORMAT[] PROGMEM =	"(%09d) DEBUG:   ";
-static const char INFO_PREFIX_FORMAT[] PROGMEM =	"(%09d) INFO:    ";
-static const char WARNING_PREFIX_FORMAT[] PROGMEM =	"(%09d) WARNING: ";
-static const char ERROR_PREFIX_FORMAT[] PROGMEM =	"(%09d) ERROR:   ";
-static const char OFF_PREFIX_FORMAT[] PROGMEM =		"(%09d) OFF:     ";
+static const char VERBOSE_PREFIX_FORMAT[] PROGMEM =	"%09d VERBOSE ";
+static const char DEBUG_PREFIX_FORMAT[] PROGMEM =	"%09d DEBUG   ";
+static const char INFO_PREFIX_FORMAT[] PROGMEM =	"%09d INFO    ";
+static const char WARNING_PREFIX_FORMAT[] PROGMEM =	"%09d WARNING ";
+static const char ERROR_PREFIX_FORMAT[] PROGMEM =	"%09d ERROR   ";
+static const char OFF_PREFIX_FORMAT[] PROGMEM =		"%09d OFF     ";
 
 Print* LogClass::stream = nullptr;
 FILE* LogClass::file = nullptr;

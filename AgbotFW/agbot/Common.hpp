@@ -23,7 +23,7 @@ void assertImpl(bool condition, const char* conditionStr, const char* file, int 
 #endif
 
 // returns: > 0 if t1 comes after t2; < 0 if t1 comes before t2; 0 if t1 equals t2
-inline bool timeCmp(unsigned long t1, unsigned long t2) {
+inline int8_t timeCmp(unsigned long t1, unsigned long t2) {
 	unsigned long diff = t1 - t2;
 	if (diff == 0) {
 		return 0;

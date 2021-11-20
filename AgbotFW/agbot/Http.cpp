@@ -85,6 +85,8 @@ void HttpServer::begin(void) {
 	server.begin();
 }
 
+// reads up to bufferLen - 1 bytes into buf, either from connection.leftovers (if present)
+// or the Ethernet client (otherwise). Always null-terminates the input.
 static size_t read(EthernetClient& client, HttpConnection& connection, char* buf, size_t bufferLen) {
 	size_t numRead = 0;
 	if (connection.leftovers) {
@@ -249,7 +251,7 @@ static bool parseClient_ReadingUri(EthernetClient& client, HttpConnection& conne
 		return true; // wait for more data to come in
 	}
 	ssize_t bufferLen = sizeof(connection.requestUri) - connection.readPosition;
-	if (bufferLen <= 1) { //TODO why 1?
+	if (bufferLen <= 1) { // need bufferLen > 1 so there is room for more data + null byte
 		connection.state = HTTPCLIENT_RCVD_URI_TOO_LONG;
 		return false;
 	}
