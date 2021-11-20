@@ -20,18 +20,18 @@
 #define HTTP_MAX_CONNECTIONS		(4)
 
 enum class HttpMethod : uint8_t {
-	OPTIONS,
-	GET,
-	HEAD,
-	POST,
-	PUT,
-	DELETE,
-	PATCH,
+	OPTIONS = 0,
+	GET = 1,
+	HEAD = 2,
+	POST = 3,
+	PUT = 4,
+	DELETE = 5,
+	PATCH = 6
 };
 
 enum class HttpVersion : uint8_t {
-	Http_10,
-	Http_11,
+	Http_10 = 0,
+	Http_11 = 1,
 };
 
 struct HttpHeader {

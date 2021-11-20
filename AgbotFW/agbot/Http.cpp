@@ -216,7 +216,7 @@ static bool parseClient_ReadingMethod(EthernetClient& client, HttpConnection& co
 		return true;
 	}
 	ssize_t bufferLen = HTTP_METHOD_MAX_LEN + 2 - connection.readPosition; // space for the worst-case string ("OPTIONS ") incl zero byte
-	if (bufferLen <= 0) { // buffer overflow - no room to read more data
+	if (bufferLen <= 1) { // need bufferLen > 1 so there is room for more data + null byte
 		connection.state = HTTPCLIENT_RCVD_BAD_METHOD;
 		return false;
 	}
@@ -296,7 +296,7 @@ static bool parseClient_ReadingVersion(EthernetClient& client, HttpConnection& c
 		return true; // wait for more data to come in
 	}
 	ssize_t bufferLen = HTTP_VERSION_MAX_LEN + CRLF_STR_LEN + 1 - connection.readPosition; // space for the worst-case string ("HTTP/1.1\r\n") incl zero byte
-	if (bufferLen <= 0) {
+	if (bufferLen <= 1) { // need bufferLen > 1 so there is room for more data + null byte
 		connection.state = HTTPCLIENT_RCVD_BAD_VERSION;
 		return false;
 	}
@@ -393,7 +393,7 @@ static bool parseClient_ReadingHeaderKey(EthernetClient& client, HttpConnection&
 				connection.state = HTTPCLIENT_RCVD_HDRS_TOO_LONG;
 			}
 			else {
-				connection.readPosition += read(client, connection, connection.requestHeaders, bufferLen);
+				connection.readPosition += read(client, connection, connection.requestHeaders + connection.readPosition, bufferLen);
 			}
 		}
 	}
@@ -423,7 +423,7 @@ static bool parseClient_ReadingHeaderValue(EthernetClient& client, HttpConnectio
 				connection.state = HTTPCLIENT_RCVD_HDRS_TOO_LONG;
 			}
 			else {
-				connection.readPosition += read(client, connection, connection.requestHeaders, bufferLen);
+				connection.readPosition += read(client, connection, connection.requestHeaders + connection.readPosition, bufferLen);
 			}
 		}
 	}
@@ -838,7 +838,7 @@ void HttpServer::serve(void) {
 		if (!clients[i].connected()) {
 			clients[i].stop();
 			numConnections--;
-			connections[i].state = HTTPCLIENT_STATUS_DISCONNECTED;
+			resetConnection(connections[i]);
 			continue;
 		}
 		if (connections[i].state & HTTPCLIENT_STATUS_READING) {
@@ -846,13 +846,13 @@ void HttpServer::serve(void) {
 		}
 		if (connections[i].state & HTTPCLIENT_STATUS_RCVD) {
 #if LOG_LEVEL <= LOG_LEVEL_VERBOSE
-			LOG_VERBOSE("Received HTTP Message: State=[%x], Method=[%x], URI=[%s], Version=[%x]",
+			LOG_VERBOSE("Received HTTP Message: State=[%d], Method=[%d], URI=[%s], Version=[%d]",
 							connections[i].state,
-							connections[i].request.method,
+							static_cast<uint8_t>(connections[i].request.method),
 							connections[i].request.uri,
-							connections[i].request.version);
-			Log.writeDetails_P(PSTR("Headers (%x)\n%s\n"), connections[i].request.numHeaders, connections[i].requestHeaders);
-			Log.writeDetails_P(PSTR("Request Body (len=%x):\n%s\n"), connections[i].request.contentLength, connections[i].request.content);
+							static_cast<uint8_t>(connections[i].request.version));
+			Log.writeDetails_P(PSTR("Headers (%d)\n%s\n"), connections[i].request.numHeaders, connections[i].requestHeaders);
+			Log.writeDetails_P(PSTR("Request Body (len=%d):\n%s\n"), connections[i].request.contentLength, connections[i].request.content);
 #endif
 			// respond to the request using the provided handler, or a default error behavior.
 			handleRequest(clients[i], connections[i], handler);
