@@ -14,7 +14,7 @@
 #include "Sprayer.hpp"
 #include "Tiller.hpp"
 
-#ifdef DEMO_MODE
+#if 0 // disable this file completely. (Still including for reference)
 
 extern Config config;
 extern Tiller tillers[];
@@ -200,4 +200,4 @@ void loop(void) {
 	}
 }
 
-#endif // DEMO_MODE
+#endif

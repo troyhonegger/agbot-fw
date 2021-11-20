@@ -336,6 +336,9 @@
     <Compile Include="Tiller.hpp">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="BenchTests.cpp">
+      <SubType>compile</SubType>
+    </Compile>
     <Content Include="readme.html">
     </Content>
   </ItemGroup>

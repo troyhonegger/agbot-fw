@@ -8,9 +8,6 @@
 
 #include <Arduino.h>
 
-// Comment this line to run the "production" code; un-comment to run "TillAndSprayDemo.cpp"
-//#define DEMO_MODE
-
 // Comment this line to use a static IP address of 10.0.0.2; un-comment to use DHCP
 #define DHCP
 

@@ -18,7 +18,7 @@ Throttle throttle;
 EthernetServer ethernetSrvr(80);
 HttpServer server(ethernetSrvr, 4, httpHandler);
 
-#ifndef DEMO_MODE
+#ifndef BENCH_TESTS
 
 void setup() {
 #if LOG_LEVEL != LOG_LEVEL_OFF
