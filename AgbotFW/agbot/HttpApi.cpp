@@ -81,20 +81,26 @@ static void configHandler(HttpRequest const& request, HttpResponse& response) {
 		methodNotAllowedHandler(request, response);
 	}
 	else {
+		response.version = HttpVersion::Http_11;
 		const char* settingStr = request.uri + sizeof("/api/config") - 1;
 		if ((!*settingStr || *settingStr == '?') && request.method == HttpMethod::GET) {
 			response.responseCode = 200;
+			strcpy_P(responseHeaders, PSTR("Content-Type: application/json"));
+			response.headers[0].key = responseHeaders;
+			response.headers[0].keyLen = 12;
+			response.headers[0].value = &responseHeaders[14];
+			response.headers[0].valueLen = 16;
 			const char *format = PSTR("{\n"
-				"\t\"HitchAccuracy\": %d,\n"
-				"\t\"HitchLoweredHeight\": %d,\n"
-				"\t\"HitchRaisedHeight\": %d,\n"
-				"\t\"Precision\": %d,\n"
-				"\t\"ResponseDelay\": %d\n"
-				"\t\"TillerAccuracy\": %d\n"
-				"\t\"TillerLoweredHeight\": %d\n"
-				"\t\"TillerLowerTime\": %d\n"
-				"\t\"TillerRaisedHeight\": %d\n"
-				"\t\"TillerRaiseTime\": %d\n"
+				"\t\"HitchAccuracy\": %u,\n"
+				"\t\"HitchLoweredHeight\": %u,\n"
+				"\t\"HitchRaisedHeight\": %u,\n"
+				"\t\"Precision\": %u,\n"
+				"\t\"ResponseDelay\": %u,\n"
+				"\t\"TillerAccuracy\": %u,\n"
+				"\t\"TillerLoweredHeight\": %u,\n"
+				"\t\"TillerLowerTime\": %u,\n"
+				"\t\"TillerRaisedHeight\": %u,\n"
+				"\t\"TillerRaiseTime\": %u\n"
 			"}");
 			response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, format,
 				config.get(Setting::HitchAccuracy),
@@ -123,30 +129,33 @@ static void configHandler(HttpRequest const& request, HttpResponse& response) {
 			if (stringToSetting(settingStr, setting)) {
 				minValue = minSettingValue(setting);
 				maxValue = maxSettingValue(setting);
-			}
+			} 
 			else {
 				response.responseCode = 400;
 				SET_STATIC_CONTENT(response, "Unknown configuration setting.");
 				return;
 			}
 			if (request.method == HttpMethod::GET) {
+				response.responseCode = 200;
 				strcpy_P(responseHeaders, PSTR("Content-Type: application/json"));
 				response.headers[0].key = responseHeaders;
 				response.headers[0].keyLen = 12;
 				response.headers[0].value = &responseHeaders[14];
 				response.headers[0].valueLen = 16;
-				response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("%d"), config.get(setting));
+				response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("%u"), config.get(setting));
 				response.content = responseBody;
 			}
 			else { // request.method == HttpMethod::PUT
-				long lval = atol(request.content);
-				if (lval < minValue || lval > maxValue) {
+				char *endPtr;
+				long lval = strtol(request.content, &endPtr, 10);
+				if (!*request.content || *endPtr || lval < (long) minValue || lval > (long) maxValue) {
 					response.responseCode = 400;
-					response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("%s must be between %d and %d"), settingStr + 1, minValue, maxValue);
+					response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("%s must be an integer between %u and %u, not \"%s\""), settingStr, minValue, maxValue, request.content);
 					response.content = responseBody;
 				}
 				else {
 					response.responseCode = 204;
+					config.set(setting, (uint16_t) lval);
 				}
 			}
 		}

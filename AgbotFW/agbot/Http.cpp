@@ -444,7 +444,7 @@ static bool parseClient_ReadingHeaderValue(EthernetClient& client, HttpConnectio
 			char* endPosn = strstr_P(connection.requestHeaders + connection.parsePosition, CRLF_STR);
 			if (endPosn) {
 				currentHeader->valueLen = endPosn - currentHeader->value;
-				if (!strncmp_P(currentHeader->key, CONTENT_LENGTH_STR, currentHeader->keyLen)) {
+				if (!strncasecmp_P(currentHeader->key, CONTENT_LENGTH_STR, currentHeader->keyLen)) {
 					char tmp = currentHeader->value[currentHeader->valueLen];
 					currentHeader->value[currentHeader->valueLen] = '\0';
 					//TODO: this does bad things if the content-length is not an integer
@@ -731,9 +731,9 @@ static void writeResponse(EthernetClient& client, HttpResponse& response) {
 	}
 	client.print(F("\r\nConnection: Close\r\n"));
 	for (int i = 0; response.headers[i].key; i++) {
-		client.print(response.headers[i].key);
+		client.write(response.headers[i].key, response.headers[i].keyLen);
 		client.print(F(": "));
-		client.print(response.headers[i].value);
+		client.write(response.headers[i].value, response.headers[i].valueLen);
 		client.print(F("\r\n"));
 	}
 	if (response.contentLength) {
