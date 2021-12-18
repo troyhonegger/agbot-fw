@@ -128,26 +128,26 @@ void Tiller::update() {
 
 size_t Tiller::serialize(char *str, size_t n) const {
 	updateActualHeight();
-	char targetStr[8];
+	char targetStr[10];
 	switch (targetHeight) {
 		case TillerCommand::STOP:
-			strcpy_P(targetStr, PSTR("STOP"));
+			strcpy_P(targetStr, PSTR("\"STOP\""));
 			break;
 		case TillerCommand::DOWN:
-			strcpy_P(targetStr, PSTR("DOWN"));
+			strcpy_P(targetStr, PSTR("\"DOWN\""));
 			break;
 		case TillerCommand::LOWERED:
-			strcpy_P(targetStr, PSTR("LOWERED"));
+			strcpy_P(targetStr, PSTR("\"LOWERED\""));
 			break;
 		case TillerCommand::RAISED:
-			strcpy_P(targetStr, PSTR("RAISED"));
+			strcpy_P(targetStr, PSTR("\"RAISED\""));
 			break;
 		case TillerCommand::UP:
-			strcpy_P(targetStr, PSTR("UP"));
+			strcpy_P(targetStr, PSTR("\"UP\""));
 			break;
 		default:
 			sprintf_P(targetStr, PSTR("%d"), targetHeight);
 			break;
 	}
-	return snprintf_P(str, n, PSTR("{\"height\":%hhu,\"dh\":%hhd,\"target\":\"%s\"}"), actualHeight, getDH(), targetStr);
+	return snprintf_P(str, n, PSTR("{\"height\":%hhu,\"dh\":%hhd,\"target\":%s}"), actualHeight, getDH(), targetStr);
 }

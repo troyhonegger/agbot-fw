@@ -53,8 +53,8 @@ If `{id}` is omitted, all tillers should be returned as a JSON array.
 Response: 200 (OK), `application/json`
 ```json
 {
-  "actualHeight": "20",
-  "targetHeight": "LOWERED",
+  "height": "20",
+  "target": "LOWERED",
   "dh": 0
 }
 
@@ -62,16 +62,16 @@ Response: 200 (OK), `application/json`
  -1: lowering
   0: stopped
   1: raising
-"actualHeight" is an integer between 0 and 100
+"height" is an integer between 0 and 100
   0: fully lowered
   100: fully raised
-"targetHeight" is one of the following:
-  an integer between 0 (fully lowered) and 100 (fully raised)
-  "STOP": Tiller is stopped regardless of its height
-  "UP": Tiller is raising regardless of its height
-  "DOWN": Tiller is lowering regardless of its height
+"target" is one of the following:
+  an integer between 0 and 100: tiller wants to achieve this height.
+  "STOP": Tiller is stopped regardless of its height.
+  "UP": Tiller is raising regardless of its height.
+  "DOWN": Tiller is lowering regardless of its height.
   "LOWERED": Tiller wants to remain just below the surface.
-  "RAISING": Tiller wants to remain just above the surface.
+  "RAISED": Tiller wants to remain just above the surface.
 ```
 
 

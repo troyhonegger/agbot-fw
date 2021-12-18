@@ -8,10 +8,13 @@
 #include "Common.hpp"
 #include "Devices.hpp"
 #include "HttpApi.hpp"
+#include "HttpApi_Parsing.hpp"
 
 #define PSTR_AND_LENGTH(s) PSTR(s), sizeof(s) - 1
 
 #define SET_STATIC_CONTENT(resp, s) do { resp.content = PSTR(s); resp.contentLength = sizeof(s) - 1; resp.isContentInProgmem = true; } while (0)
+
+//TODO: want to replace atoi() calls with strtol() or similar
 
 // TODO: this approach assumes each response is sent before the next message comes in
 static char responseHeaders[256] = {0};
@@ -30,7 +33,8 @@ static HttpHandler weedHandler;
 static HttpHandler notImplementedHandler;
 static HttpHandler notFoundHandler;
 static HttpHandler methodNotAllowedHandler;
-static HttpHandler malformedJsonHandler;
+
+static void handleParseError(HttpRequest const& request, HttpResponse& response, ParseStatus error);
 
 void httpHandler(HttpRequest const& request, HttpResponse& response) {
 	*responseHeaders = '\0';
@@ -174,9 +178,10 @@ static void hitchHandler(HttpRequest const& request, HttpResponse& response) {
 }
 
 static void tillerHandler(HttpRequest const& request, HttpResponse& response) {
+	response.version = HttpVersion::Http_11;
+	char* idStr = request.uri + sizeof("/api/tillers") - 1;
 	switch (request.method) {
 		case HttpMethod::GET: {
-			char* idStr = request.uri + sizeof("/api/tillers");
 			if (*idStr && *++idStr) {
 				int id = atoi(idStr);
 				if (id < 0 || id >= Tiller::COUNT) {
@@ -222,7 +227,39 @@ static void tillerHandler(HttpRequest const& request, HttpResponse& response) {
 			}
 		} break;
 		case HttpMethod::PUT: {
-			notImplementedHandler(request, response); //TODO
+			int id = -1;
+			if (*idStr && *++idStr) {
+				id = atoi(idStr);
+				if (id < 0 || id >= Tiller::COUNT) {
+					response.responseCode = 400;
+					response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("id must be between 0 and %d - was '%s'"), Tiller::COUNT, idStr);
+					response.content = responseBody;
+					return;
+				}
+			}
+
+			PutTiller tillerCommand;
+			ParseStatus result = parsePutTillerCmd(request.content, request.contentLength, tillerCommand);
+			if (result == ParseStatus::SUCCESS) {
+				// actually execute the command
+				if (id >= 0) {
+					tillers[id].setHeight(tillerCommand.targetHeight, tillerCommand.delay);
+				}
+				else {
+					// do this for all tillers
+					for (id = 0; id < Tiller::COUNT; id++) {
+						tillers[id].setHeight(tillerCommand.targetHeight, tillerCommand.delay);
+					}
+				}
+				// send a 204 No Content to indicate success
+				response.responseCode = 204;
+				response.contentLength = 0;
+				response.content = nullptr;
+				response.isContentInProgmem = false;
+			}
+			else {
+				handleParseError(request, response, result);
+			}
 		} break;
 		default: methodNotAllowedHandler(request, response);
 	}
@@ -255,8 +292,20 @@ static void methodNotAllowedHandler(HttpRequest const& request, HttpResponse& re
 	SET_STATIC_CONTENT(response, "Method not allowed");
 }
 
-static void malformedJsonHandler(HttpRequest const& request, HttpResponse& response) {
+static void handleParseError(HttpRequest const& request, HttpResponse& response, ParseStatus error) {
 	response.version = HttpVersion::Http_11;
 	response.responseCode = 400;
-	SET_STATIC_CONTENT(response, "Malformed JSON in request body");
+	switch (error) {
+		case ParseStatus::SYNTAX_ERROR:
+			SET_STATIC_CONTENT(response, "Malformed JSON in request body");
+			break;
+		case ParseStatus::BUFFER_OVERFLOW:
+			SET_STATIC_CONTENT(response, "Too many JSON tokens");
+			break;
+		case ParseStatus::SEMANTIC_ERROR:
+			SET_STATIC_CONTENT(response, "Invalid JSON request");
+			break;
+		default:
+			assert(0);
+	}
 }
