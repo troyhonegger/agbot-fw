@@ -32,15 +32,15 @@
     <EraseKey />
     <AsfFrameworkConfig>
       <framework-data>
-  <options />
-  <configurations />
-  <files />
-  <documentation help="" />
-  <offline-documentation help="" />
-  <dependencies>
-    <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.42.0" />
-  </dependencies>
-</framework-data>
+        <options />
+        <configurations />
+        <files />
+        <documentation help="" />
+        <offline-documentation help="" />
+        <dependencies>
+          <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.42.0" />
+        </dependencies>
+      </framework-data>
     </AsfFrameworkConfig>
     <avrtool />
   </PropertyGroup>
@@ -287,27 +287,6 @@
     <Compile Include="include\core\WString.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="include\libraries\Ethernet\src\Dhcp.h">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="include\libraries\Ethernet\src\Dns.h">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="include\libraries\Ethernet\src\Ethernet.h">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="include\libraries\Ethernet\src\EthernetClient.h">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="include\libraries\Ethernet\src\EthernetServer.h">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="include\libraries\Ethernet\src\EthernetUdp.h">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="include\libraries\Ethernet\src\utility\w5100.h">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="include\libraries\SPI\src\SPI.h">
       <SubType>compile</SubType>
     </Compile>
@@ -395,30 +374,6 @@
     <Compile Include="src\core\WString.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\libraries\Ethernet\src\Dhcp.cpp">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\libraries\Ethernet\src\Dns.cpp">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\libraries\Ethernet\src\Ethernet.cpp">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\libraries\Ethernet\src\EthernetClient.cpp">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\libraries\Ethernet\src\EthernetServer.cpp">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\libraries\Ethernet\src\EthernetUdp.cpp">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\libraries\Ethernet\src\socket.cpp">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\libraries\Ethernet\src\utility\w5100.cpp">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="src\libraries\SPI\src\SPI.cpp">
       <SubType>compile</SubType>
     </Compile>
@@ -433,9 +388,6 @@
     <Folder Include="include\" />
     <Folder Include="include\core\" />
     <Folder Include="include\libraries\" />
-    <Folder Include="include\libraries\Ethernet\" />
-    <Folder Include="include\libraries\Ethernet\src\" />
-    <Folder Include="include\libraries\Ethernet\src\utility\" />
     <Folder Include="include\libraries\SPI\" />
     <Folder Include="include\libraries\SPI\src\" />
     <Folder Include="include\libraries\Wire\" />
@@ -447,9 +399,6 @@
     <Folder Include="src\core\" />
     <Folder Include="src\core\PreprocessingAssembly\" />
     <Folder Include="src\libraries\" />
-    <Folder Include="src\libraries\Ethernet\" />
-    <Folder Include="src\libraries\Ethernet\src\" />
-    <Folder Include="src\libraries\Ethernet\src\utility\" />
     <Folder Include="src\libraries\SPI\" />
     <Folder Include="src\libraries\SPI\src\" />
     <Folder Include="src\libraries\Wire\" />

@@ -1,0 +1,3 @@
+[submodule "AgbotFW/Ethernet"]
+	path = AgbotFW/Ethernet
+	url = https://github.com/troyhonegger/Ethernet.git
