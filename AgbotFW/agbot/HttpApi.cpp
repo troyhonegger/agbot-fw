@@ -14,6 +14,8 @@
 
 #define SET_STATIC_CONTENT(resp, s) do { resp.content = PSTR(s); resp.contentLength = sizeof(s) - 1; resp.isContentInProgmem = true; } while (0)
 
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+
 //TODO: want to replace atoi() calls with strtol() or similar
 
 // TODO: this approach assumes each response is sent before the next message comes in
@@ -39,6 +41,8 @@ static void handleParseError(HttpRequest const& request, HttpResponse& response,
 void httpHandler(HttpRequest const& request, HttpResponse& response) {
 	*responseHeaders = '\0';
 	*responseBody = '\0';
+	response.headers = responseHeaders;
+	response.headersLength = 0;
 
 	if (!strncmp_P(request.uri, PSTR_AND_LENGTH("/api"))) {
 		apiHandler(request, response);
@@ -89,11 +93,9 @@ static void configHandler(HttpRequest const& request, HttpResponse& response) {
 		const char* settingStr = request.uri + sizeof("/api/config") - 1;
 		if ((!*settingStr || *settingStr == '?') && request.method == HttpMethod::GET) {
 			response.responseCode = 200;
-			strcpy_P(responseHeaders, PSTR("Content-Type: application/json"));
-			response.headers[0].key = responseHeaders;
-			response.headers[0].keyLen = 12;
-			response.headers[0].value = &responseHeaders[14];
-			response.headers[0].valueLen = 16;
+			memccpy_P(responseHeaders + response.headersLength, PSTR("Content-Type: application/json\r\n"),
+						'\0', sizeof(responseHeaders) - response.headersLength);
+			response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + 32);
 			const char *format = PSTR("{\n"
 				"\t\"HitchAccuracy\": %u,\n"
 				"\t\"HitchLoweredHeight\": %u,\n"
@@ -141,11 +143,9 @@ static void configHandler(HttpRequest const& request, HttpResponse& response) {
 			}
 			if (request.method == HttpMethod::GET) {
 				response.responseCode = 200;
-				strcpy_P(responseHeaders, PSTR("Content-Type: application/json"));
-				response.headers[0].key = responseHeaders;
-				response.headers[0].keyLen = 12;
-				response.headers[0].value = &responseHeaders[14];
-				response.headers[0].valueLen = 16;
+				memccpy_P(responseHeaders + response.headersLength, PSTR("Content-Type: application/json\r\n"),
+							'\0', sizeof(responseHeaders) - response.headersLength);
+				response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + 32);
 				response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("%u"), config.get(setting));
 				response.content = responseBody;
 			}
@@ -190,21 +190,18 @@ static void tillerHandler(HttpRequest const& request, HttpResponse& response) {
 					response.content = responseBody;
 				}
 				else {
-					strcpy_P(responseHeaders, PSTR("Content-Type: application/json"));
-					response.headers[0].key = responseHeaders;
-					response.headers[0].keyLen = 12;
-					response.headers[0].value = &responseHeaders[14];
-					response.headers[0].valueLen = 16;
+					memccpy_P(responseHeaders + response.headersLength, PSTR("Content-Type: application/json\r\n"),
+								'\0', sizeof(responseHeaders) - response.headersLength);
+					response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + 32);
 					response.contentLength = tillers[id].serialize(responseBody, sizeof(responseBody) - 1);
 					response.content = responseBody;
 				}
 			}
 			else {
-				strcpy_P(responseHeaders, PSTR("Content-Type: application/json"));
-				response.headers[0].key = responseHeaders;
-				response.headers[0].keyLen = 12;
-				response.headers[0].value = &responseHeaders[14];
-				response.headers[0].valueLen = 16;
+				memccpy_P(responseHeaders + response.headersLength, PSTR("Content-Type: application/json\r\n"),
+							'\0', sizeof(responseHeaders) - response.headersLength);
+				response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + 32);
+
 
 				size_t len = 1;
 				*responseBody = '['; // opening array element

@@ -53,7 +53,8 @@ struct HttpRequest {
 };
 
 struct HttpResponse {
-	HttpHeader headers[HTTP_HEADER_CNT];
+	char* headers;
+	size_t headersLength;
 	const char* content;
 	size_t contentLength;
 	uint16_t responseCode;

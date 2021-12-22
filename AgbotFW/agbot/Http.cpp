@@ -510,13 +510,17 @@ static void parseRequest(EthernetClient& client, HttpConnection& connection) {
 }
 
 // TODO:
-// 1. Performance tuning - see if we can somehow reduce the number of writes
-// 2. It looks like EthernetClient's write() function has a busy loop
+// 1. It looks like EthernetClient's write() function has a busy loop
 //    while it waits for the Wiznet shield's buffer to clear out. Might need
 //    to use EthernetClient::availableForWrite() to poll for when hardware
-//    is ready. This could lead to buffer corruption in the API if multiple
-//    requests are being handled simultaneously.
-// 3. Writes over 2k (the buffer size of the Wiznet) are silently truncated
+//    is ready. (Of course, this can only occur under heavy load - if we
+//    can't receive/process/respond to requests fast enough to catch up to
+//    the Wiznet buffer, this own't be an issue).
+//      - Making this change could lead to buffer corruption in the API if
+//        multiple requests are being handled simultaneously. Would probably
+//        have to add a guarantee that no request will be processed before
+//        the response to the previous request has been sent.
+// 2. Writes over 2k (the buffer size of the Wiznet) are silently truncated
 //    by EthernetClient::write_P. This could eventually break things if we
 //    try and send an entire HTML webpage all at once.
 static void writeResponse(EthernetClient& client, HttpResponse& response) {
@@ -530,211 +534,211 @@ static void writeResponse(EthernetClient& client, HttpResponse& response) {
 
 	switch (response.responseCode) {
 		case 100:
-			client.write_P(PSTR_AND_LEN("100 Continue"));
+			client.write_P(PSTR_AND_LEN("100 Continue\r\n"));
 			break;
 		case 101:
-			client.write_P(PSTR_AND_LEN("101 Switching Protocols"));
+			client.write_P(PSTR_AND_LEN("101 Switching Protocols\r\n"));
 			break;
 		case 102:
-			client.write_P(PSTR_AND_LEN("102 Processing"));
+			client.write_P(PSTR_AND_LEN("102 Processing\r\n"));
 			break;
 		case 103:
-			client.write_P(PSTR_AND_LEN("103 Early Hints"));
+			client.write_P(PSTR_AND_LEN("103 Early Hints\r\n"));
 			break;
 		case 200:
-			client.write_P(PSTR_AND_LEN("200 OK"));
+			client.write_P(PSTR_AND_LEN("200 OK\r\n"));
 			break;
 		case 201:
-			client.write_P(PSTR_AND_LEN("201 Created"));
+			client.write_P(PSTR_AND_LEN("201 Created\r\n"));
 			break;
 		case 202:
-			client.write_P(PSTR_AND_LEN("202 Accepted"));
+			client.write_P(PSTR_AND_LEN("202 Accepted\r\n"));
 			break;
 		case 203:
-			client.write_P(PSTR_AND_LEN("203 Non-Authoritative Information"));
+			client.write_P(PSTR_AND_LEN("203 Non-Authoritative Information\r\n"));
 			break;
 		case 204:
-			client.write_P(PSTR_AND_LEN("204 No Content"));
+			client.write_P(PSTR_AND_LEN("204 No Content\r\n"));
 			break;
 		case 205:
-			client.write_P(PSTR_AND_LEN("205 Reset Content"));
+			client.write_P(PSTR_AND_LEN("205 Reset Content\r\n"));
 			break;
 		case 206:
-			client.write_P(PSTR_AND_LEN("206 Partial Content"));
+			client.write_P(PSTR_AND_LEN("206 Partial Content\r\n"));
 			break;
 		case 207:
-			client.write_P(PSTR_AND_LEN("207 Multi-Status"));
+			client.write_P(PSTR_AND_LEN("207 Multi-Status\r\n"));
 			break;
 		case 208:
-			client.write_P(PSTR_AND_LEN("208 Already Reported"));
+			client.write_P(PSTR_AND_LEN("208 Already Reported\r\n"));
 			break;
 		case 226:
-			client.write_P(PSTR_AND_LEN("204 IM Used"));
+			client.write_P(PSTR_AND_LEN("204 IM Used\r\n"));
 			break;
 		case 300:
-			client.write_P(PSTR_AND_LEN("300 Multiple Choices"));
+			client.write_P(PSTR_AND_LEN("300 Multiple Choices\r\n"));
 			break;
 		case 301:
-			client.write_P(PSTR_AND_LEN("301 Moved Permanently"));
+			client.write_P(PSTR_AND_LEN("301 Moved Permanently\r\n"));
 			break;
 		case 302:
-			client.write_P(PSTR_AND_LEN("302 Found"));
+			client.write_P(PSTR_AND_LEN("302 Found\r\n"));
 			break;
 		case 303:
-			client.write_P(PSTR_AND_LEN("303 See Other"));
+			client.write_P(PSTR_AND_LEN("303 See Other\r\n"));
 			break;
 		case 304:
-			client.write_P(PSTR_AND_LEN("304 Not Modified"));
+			client.write_P(PSTR_AND_LEN("304 Not Modified\r\n"));
 			break;
 		case 305:
-			client.write_P(PSTR_AND_LEN("305 Use Proxy"));
+			client.write_P(PSTR_AND_LEN("305 Use Proxy\r\n"));
 			break;
 		case 306:
-			client.write_P(PSTR_AND_LEN("306 Switch Proxy"));
+			client.write_P(PSTR_AND_LEN("306 Switch Proxy\r\n"));
 			break;
 		case 307:
-			client.write_P(PSTR_AND_LEN("307 Temporary Redirect"));
+			client.write_P(PSTR_AND_LEN("307 Temporary Redirect\r\n"));
 			break;
 		case 308:
-			client.write_P(PSTR_AND_LEN("308 Permanent Redirect"));
+			client.write_P(PSTR_AND_LEN("308 Permanent Redirect\r\n"));
 			break;
 		case 400:
-			client.write_P(PSTR_AND_LEN("400 Bad Request"));
+			client.write_P(PSTR_AND_LEN("400 Bad Request\r\n"));
 			break;
 		case 401:
-			client.write_P(PSTR_AND_LEN("401 Unauthorized"));
+			client.write_P(PSTR_AND_LEN("401 Unauthorized\r\n"));
 			break;
 		case 402:
-			client.write_P(PSTR_AND_LEN("402 Payment Required"));
+			client.write_P(PSTR_AND_LEN("402 Payment Required\r\n"));
 			break;
 		case 403:
-			client.write_P(PSTR_AND_LEN("403 Forbidden"));
+			client.write_P(PSTR_AND_LEN("403 Forbidden\r\n"));
 			break;
 		case 404:
-			client.write_P(PSTR_AND_LEN("404 Not Found"));
+			client.write_P(PSTR_AND_LEN("404 Not Found\r\n"));
 			break;
 		case 405:
-			client.write_P(PSTR_AND_LEN("405 Method Not Allowed"));
+			client.write_P(PSTR_AND_LEN("405 Method Not Allowed\r\n"));
 			break;
 		case 406:
-			client.write_P(PSTR_AND_LEN("406 Not Acceptable"));
+			client.write_P(PSTR_AND_LEN("406 Not Acceptable\r\n"));
 			break;
 		case 407:
-			client.write_P(PSTR_AND_LEN("407 Proxy Authentication Required"));
+			client.write_P(PSTR_AND_LEN("407 Proxy Authentication Required\r\n"));
 			break;
 		case 408:
-			client.write_P(PSTR_AND_LEN("408 Request Timeout"));
+			client.write_P(PSTR_AND_LEN("408 Request Timeout\r\n"));
 			break;
 		case 409:
-			client.write_P(PSTR_AND_LEN("409 Conflict"));
+			client.write_P(PSTR_AND_LEN("409 Conflict\r\n"));
 			break;
 		case 410:
-			client.write_P(PSTR_AND_LEN("410 Gone"));
+			client.write_P(PSTR_AND_LEN("410 Gone\r\n"));
 			break;
 		case 411:
-			client.write_P(PSTR_AND_LEN("411 Length Required"));
+			client.write_P(PSTR_AND_LEN("411 Length Required\r\n"));
 			break;
 		case 412:
-			client.write_P(PSTR_AND_LEN("412 Precondition Failed"));
+			client.write_P(PSTR_AND_LEN("412 Precondition Failed\r\n"));
 			break;
 		case 413:
-			client.write_P(PSTR_AND_LEN("413 Payload Too Large"));
+			client.write_P(PSTR_AND_LEN("413 Payload Too Large\r\n"));
 			break;
 		case 414:
-			client.write_P(PSTR_AND_LEN("414 URI Too Long"));
+			client.write_P(PSTR_AND_LEN("414 URI Too Long\r\n"));
 			break;
 		case 415:
-			client.write_P(PSTR_AND_LEN("415 Unsupported Media Type"));
+			client.write_P(PSTR_AND_LEN("415 Unsupported Media Type\r\n"));
 			break;
 		case 416:
-			client.write_P(PSTR_AND_LEN("416 Range Not Satisfiable"));
+			client.write_P(PSTR_AND_LEN("416 Range Not Satisfiable\r\n"));
 			break;
 		case 417:
-			client.write_P(PSTR_AND_LEN("417 Expectation Failed"));
+			client.write_P(PSTR_AND_LEN("417 Expectation Failed\r\n"));
 			break;
 		case 418:
-			client.write_P(PSTR_AND_LEN("418 I'm a teapot"));
+			client.write_P(PSTR_AND_LEN("418 I'm a teapot\r\n"));
 			break;
 		case 421:
-			client.write_P(PSTR_AND_LEN("421 Misdirected Request"));
+			client.write_P(PSTR_AND_LEN("421 Misdirected Request\r\n"));
 			break;
 		case 422:
-			client.write_P(PSTR_AND_LEN("422 Unprocessable Entity"));
+			client.write_P(PSTR_AND_LEN("422 Unprocessable Entity\r\n"));
 			break;
 		case 423:
-			client.write_P(PSTR_AND_LEN("423 Locked"));
+			client.write_P(PSTR_AND_LEN("423 Locked\r\n"));
 			break;
 		case 424:
-			client.write_P(PSTR_AND_LEN("424 Failed Dependency"));
+			client.write_P(PSTR_AND_LEN("424 Failed Dependency\r\n"));
 			break;
 		case 425:
-			client.write_P(PSTR_AND_LEN("425 Too Early"));
+			client.write_P(PSTR_AND_LEN("425 Too Early\r\n"));
 			break;
 		case 426:
-			client.write_P(PSTR_AND_LEN("426 Upgrade Required"));
+			client.write_P(PSTR_AND_LEN("426 Upgrade Required\r\n"));
 			break;
 		case 428:
-			client.write_P(PSTR_AND_LEN("428 Precondition Required"));
+			client.write_P(PSTR_AND_LEN("428 Precondition Required\r\n"));
 			break;
 		case 429:
-			client.write_P(PSTR_AND_LEN("429 Too Many Requests"));
+			client.write_P(PSTR_AND_LEN("429 Too Many Requests\r\n"));
 			break;
 		case 431:
-			client.write_P(PSTR_AND_LEN("431 Request Header Fields Too Large"));
+			client.write_P(PSTR_AND_LEN("431 Request Header Fields Too Large\r\n"));
 			break;
 		case 451:
-			client.write_P(PSTR_AND_LEN("451 Unavailable For Legal Reasons"));
+			client.write_P(PSTR_AND_LEN("451 Unavailable For Legal Reasons\r\n"));
 			break;
 		case 500:
-			client.write_P(PSTR_AND_LEN("500 Internal Server Error"));
+			client.write_P(PSTR_AND_LEN("500 Internal Server Error\r\n"));
 			break;
 		case 501:
-			client.write_P(PSTR_AND_LEN("501 Not Implemented"));
+			client.write_P(PSTR_AND_LEN("501 Not Implemented\r\n"));
 			break;
 		case 502:
-			client.write_P(PSTR_AND_LEN("502 Bad Gateway"));
+			client.write_P(PSTR_AND_LEN("502 Bad Gateway\r\n"));
 			break;
 		case 503:
-			client.write_P(PSTR_AND_LEN("503 Service Unavailable"));
+			client.write_P(PSTR_AND_LEN("503 Service Unavailable\r\n"));
 			break;
 		case 504:
-			client.write_P(PSTR_AND_LEN("504 Gateway Timeout"));
+			client.write_P(PSTR_AND_LEN("504 Gateway Timeout\r\n"));
 			break;
 		case 505:
-			client.write_P(PSTR_AND_LEN("505 HTTP Version Not Supported"));
+			client.write_P(PSTR_AND_LEN("505 HTTP Version Not Supported\r\n"));
 			break;
 		case 506:
-			client.write_P(PSTR_AND_LEN("506 Variant Also Negotiates"));
+			client.write_P(PSTR_AND_LEN("506 Variant Also Negotiates\r\n"));
 			break;
 		case 507:
-			client.write_P(PSTR_AND_LEN("507 Insufficient Storage"));
+			client.write_P(PSTR_AND_LEN("507 Insufficient Storage\r\n"));
 			break;
 		case 508:
-			client.write_P(PSTR_AND_LEN("508 Loop Detected"));
+			client.write_P(PSTR_AND_LEN("508 Loop Detected\r\n"));
 			break;
 		case 510:
-			client.write_P(PSTR_AND_LEN("510 Not Extended"));
+			client.write_P(PSTR_AND_LEN("510 Not Extended\r\n"));
 			break;
 		case 511:
-			client.write_P(PSTR_AND_LEN("511 Network Authentication Required"));
+			client.write_P(PSTR_AND_LEN("511 Network Authentication Required\r\n"));
 			break;
 		default:
 			client.print(response.responseCode);
-			client.write_P(PSTR_AND_LEN(" (unknown status)"));
+			client.write_P(PSTR_AND_LEN(" (unknown status)\r\n"));
 	}
-	client.write_P(PSTR_AND_LEN("\r\nConnection: Close\r\n"));
-	for (int i = 0; response.headers[i].key; i++) {
-		client.write(response.headers[i].key, response.headers[i].keyLen);
-		client.write_P(PSTR_AND_LEN(": "));
-		client.write(response.headers[i].value, response.headers[i].valueLen);
-		client.write_P(PSTR_AND_LEN("\r\n"));
+	if (response.headers && response.headersLength) {
+		client.write(response.headers, response.headersLength);
 	}
 	if (response.contentLength) {
 		client.write_P(PSTR_AND_LEN("Content-Length: "));
 		client.print(response.contentLength);
-		client.write_P(PSTR_AND_LEN("\r\n"));
+		client.write_P(PSTR_AND_LEN("\r\nConnection: Close\r\n\r\n"));
 	}
-	client.write_P(PSTR_AND_LEN("\r\n"));
+	else {
+		// this else case is redundant but minimizes number of write calls, since each call results in a packet
+		client.write_P(PSTR_AND_LEN("Connection: Close\r\n\r\n"));
+	}
+
 	if (response.content && response.contentLength) {
 		if (response.isContentInProgmem) {
 			client.write_P(reinterpret_cast<const uint8_t*>(response.content), response.contentLength);
@@ -749,6 +753,8 @@ static void writeResponse(EthernetClient& client, HttpResponse& response) {
 //TODO if we ever support keep-alive, remove the hardcoded "Connection: Close" from each of these responses
 static void handleRequest(EthernetClient& client, HttpConnection& connection, HttpHandler* handler) {
 	HttpResponse response {};
+	memset(&response, 0, sizeof(response));
+
 	switch (connection.state) {
 		case HTTPCLIENT_RCVD_REQUEST:
 			handler(connection.request, response);
