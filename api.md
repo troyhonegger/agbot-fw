@@ -21,6 +21,10 @@ This API does not specify how other components of the system
 Returns `text/html` webpage
 
 
+#### GET `/version`
+Response: 200 OK, `text/plain`. Example: "v1.0.0 - built Dec 22 2021 20:39:35"
+
+
 #### GET `/api/gps`
 TODO - flesh out. Will probably return `application/json`
 

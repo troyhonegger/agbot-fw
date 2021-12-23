@@ -24,6 +24,7 @@ static char responseBody[256] = {0};
 
 // helper handlers called by httpHandler and its children
 static HttpHandler webpageHandler;
+static HttpHandler versionHandler;
 static HttpHandler apiHandler;
 static HttpHandler configHandler;
 static HttpHandler gpsHandler;
@@ -47,6 +48,9 @@ void httpHandler(HttpRequest const& request, HttpResponse& response) {
 	if (!strncmp_P(request.uri, PSTR_AND_LENGTH("/api"))) {
 		apiHandler(request, response);
 	}
+	else if (!strncmp_P(request.uri, PSTR_AND_LENGTH("/version"))) {
+		versionHandler(request, response);
+	}
 	else if (!strncmp_P(request.uri, PSTR_AND_LENGTH("/"))) {
 		webpageHandler(request, response);
 	}
@@ -57,6 +61,23 @@ void httpHandler(HttpRequest const& request, HttpResponse& response) {
 
 static void webpageHandler(HttpRequest const& request, HttpResponse& response) {
 	notImplementedHandler(request, response);
+}
+
+static void versionHandler(HttpRequest const& request, HttpResponse& response) {
+	if (request.method == HttpMethod::GET) {
+		response.version = HttpVersion::Http_11;
+		response.responseCode = 200;
+		memccpy_P(responseHeaders + response.headersLength, PSTR("Content-Type: text/plain\r\n"),
+					'\0', sizeof(responseHeaders) - response.headersLength);
+		response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + 26);
+
+		response.content =         PSTR(AGBOTFW_VERSION " - built " __DATE__ " " __TIME__);
+		response.contentLength = sizeof(AGBOTFW_VERSION " - built " __DATE__ " " __TIME__) - 1;
+		response.isContentInProgmem = true;
+	}
+	else {
+		methodNotAllowedHandler(request, response);
+	}
 }
 
 static void apiHandler(HttpRequest const& request, HttpResponse& response) {

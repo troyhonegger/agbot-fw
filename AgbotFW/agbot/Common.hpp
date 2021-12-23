@@ -19,6 +19,8 @@ void assertImpl(bool condition, const char* conditionStr, const char* file, int 
 #define assert(x)
 #endif
 
+#define AGBOTFW_VERSION "v0.9.0(dev)"
+
 // returns: > 0 if t1 comes after t2; < 0 if t1 comes before t2; 0 if t1 equals t2
 inline int8_t timeCmp(unsigned long t1, unsigned long t2) {
 	unsigned long diff = t1 - t2;
