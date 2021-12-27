@@ -9,12 +9,16 @@
 #include "Devices.hpp"
 #include "HttpApi.hpp"
 #include "HttpApi_Parsing.hpp"
+#include "Log.hpp"
 
 #define PSTR_AND_LENGTH(s) PSTR(s), sizeof(s) - 1
 
 #define SET_STATIC_CONTENT(resp, s) do { resp.content = PSTR(s); resp.contentLength = sizeof(s) - 1; resp.isContentInProgmem = true; } while (0)
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
+
+static const char CONTENT_TYPE__APPLICATION_JSON[] PROGMEM = "Content-Type: application/json\r\n";
+static const char CONTENT_TYPE__TEXT_PLAIN[] PROGMEM = "Content-Type: text/plain\r\n";
 
 //TODO: want to replace atoi() calls with strtol() or similar
 
@@ -67,9 +71,9 @@ static void versionHandler(HttpRequest const& request, HttpResponse& response) {
 	if (request.method == HttpMethod::GET) {
 		response.version = HttpVersion::Http_11;
 		response.responseCode = 200;
-		memccpy_P(responseHeaders + response.headersLength, PSTR("Content-Type: text/plain\r\n"),
+		memccpy_P(responseHeaders + response.headersLength, CONTENT_TYPE__TEXT_PLAIN,
 					'\0', sizeof(responseHeaders) - response.headersLength);
-		response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + 26);
+		response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + sizeof(CONTENT_TYPE__TEXT_PLAIN) - 1);
 
 		response.content =         PSTR(AGBOTFW_VERSION " - built " __DATE__ " " __TIME__);
 		response.contentLength = sizeof(AGBOTFW_VERSION " - built " __DATE__ " " __TIME__) - 1;
@@ -114,9 +118,9 @@ static void configHandler(HttpRequest const& request, HttpResponse& response) {
 		const char* settingStr = request.uri + sizeof("/api/config") - 1;
 		if ((!*settingStr || *settingStr == '?') && request.method == HttpMethod::GET) {
 			response.responseCode = 200;
-			memccpy_P(responseHeaders + response.headersLength, PSTR("Content-Type: application/json\r\n"),
+			memccpy_P(responseHeaders + response.headersLength, CONTENT_TYPE__APPLICATION_JSON,
 						'\0', sizeof(responseHeaders) - response.headersLength);
-			response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + 32);
+			response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + sizeof(CONTENT_TYPE__APPLICATION_JSON) - 1);
 			const char *format = PSTR("{\n"
 				"\t\"HitchAccuracy\": %u,\n"
 				"\t\"HitchLoweredHeight\": %u,\n"
@@ -164,9 +168,9 @@ static void configHandler(HttpRequest const& request, HttpResponse& response) {
 			}
 			if (request.method == HttpMethod::GET) {
 				response.responseCode = 200;
-				memccpy_P(responseHeaders + response.headersLength, PSTR("Content-Type: application/json\r\n"),
+				memccpy_P(responseHeaders + response.headersLength, CONTENT_TYPE__APPLICATION_JSON,
 							'\0', sizeof(responseHeaders) - response.headersLength);
-				response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + 32);
+				response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + sizeof(CONTENT_TYPE__APPLICATION_JSON) - 1);
 				response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("%u"), config.get(setting));
 				response.content = responseBody;
 			}
@@ -207,21 +211,21 @@ static void tillerHandler(HttpRequest const& request, HttpResponse& response) {
 				int id = atoi(idStr);
 				if (id < 0 || id >= Tiller::COUNT) {
 					response.responseCode = 400;
-					response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("id must be between 0 and %d - was '%s'"), Tiller::COUNT, idStr);
+					response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("id must be between 0 and %d - was '%s'"), Tiller::COUNT - 1, idStr);
 					response.content = responseBody;
 				}
 				else {
-					memccpy_P(responseHeaders + response.headersLength, PSTR("Content-Type: application/json\r\n"),
+					memccpy_P(responseHeaders + response.headersLength, CONTENT_TYPE__APPLICATION_JSON,
 								'\0', sizeof(responseHeaders) - response.headersLength);
-					response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + 32);
+					response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + sizeof(CONTENT_TYPE__APPLICATION_JSON) - 1);
 					response.contentLength = tillers[id].serialize(responseBody, sizeof(responseBody) - 1);
 					response.content = responseBody;
 				}
 			}
 			else {
-				memccpy_P(responseHeaders + response.headersLength, PSTR("Content-Type: application/json\r\n"),
+				memccpy_P(responseHeaders + response.headersLength, CONTENT_TYPE__APPLICATION_JSON,
 							'\0', sizeof(responseHeaders) - response.headersLength);
-				response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + 32);
+				response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + sizeof(CONTENT_TYPE__APPLICATION_JSON) - 1);
 
 
 				size_t len = 1;
@@ -250,7 +254,7 @@ static void tillerHandler(HttpRequest const& request, HttpResponse& response) {
 				id = atoi(idStr);
 				if (id < 0 || id >= Tiller::COUNT) {
 					response.responseCode = 400;
-					response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("id must be between 0 and %d - was '%s'"), Tiller::COUNT, idStr);
+					response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("id must be between 0 and %d - was '%s'"), Tiller::COUNT - 1, idStr);
 					response.content = responseBody;
 					return;
 				}
@@ -273,7 +277,6 @@ static void tillerHandler(HttpRequest const& request, HttpResponse& response) {
 				response.responseCode = 204;
 				response.contentLength = 0;
 				response.content = nullptr;
-				response.isContentInProgmem = false;
 			}
 			else {
 				handleParseError(request, response, result);
@@ -284,11 +287,152 @@ static void tillerHandler(HttpRequest const& request, HttpResponse& response) {
 }
 
 static void sprayerHandler(HttpRequest const& request, HttpResponse& response) {
-	notImplementedHandler(request, response);
+	response.version = HttpVersion::Http_11;
+	char *idStr = request.uri + sizeof("/api/sprayers") - 1;
+	switch (request.method) {
+		case HttpMethod::GET: {
+			if (*idStr && *++idStr) {
+				int id = atoi(idStr);
+				if (id < 0 || id >= Sprayer::COUNT) {
+					response.responseCode = 400;
+					response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("id must be between 0 and %d - was '%s'"), Sprayer::COUNT - 1, idStr);
+					response.content = responseBody;
+					return;
+				}
+				response.responseCode = 200;
+				memccpy_P(responseHeaders + response.headersLength, CONTENT_TYPE__APPLICATION_JSON,
+							'\0', sizeof(responseHeaders) - response.headersLength);
+				response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + sizeof(CONTENT_TYPE__APPLICATION_JSON) - 1);
+				response.contentLength = sprayers[id].serialize(responseBody, sizeof(responseBody) - 1);
+				response.content = responseBody;
+			}
+			else {
+				response.responseCode = 200;
+				memccpy_P(responseHeaders + response.headersLength, CONTENT_TYPE__APPLICATION_JSON,
+							'\0', sizeof(responseHeaders) - response.headersLength);
+				response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + sizeof(CONTENT_TYPE__APPLICATION_JSON) - 1);
+
+				size_t len = 1;
+				*responseBody = '['; // opening array element
+				for (int i = 0; i < Sprayer::COUNT; i++) {
+					if (len < sizeof(responseBody) - 1) {
+						len += sprayers[i].serialize(responseBody + len, sizeof(responseBody) - 1 - len);
+
+						if (len < sizeof(responseBody) - 1 && i + 1 < Sprayer::COUNT) {
+							responseBody[len++] = ',';
+						}
+					}
+				}
+				if (len < sizeof(responseBody) - 1) {
+					responseBody[len++] = ']';
+				}
+				responseBody[len] = '\0';
+
+				response.contentLength = len;
+				response.content = responseBody;
+			}
+		} break;
+		case HttpMethod::PUT: {
+			// first parse the {id} URL param:
+				// 0:7 means the ID was given as a number; i.e. set that particular ID
+				// -1 means no ID given (i.e. set all sprayers)
+				// -2 means {id} == "left" (i.e. sprayers 0-3)
+				// -3 means {id} == "right" (i.e. sprayers 4-7)
+			int id = -1;
+			if (*idStr && *++idStr) {
+				if (!strncmp_P(idStr, PSTR_AND_LENGTH("left"))) {
+					id = -2;
+				}
+				else if (!strncmp_P(idStr, PSTR_AND_LENGTH("right"))) {
+					id = -3;
+				}
+				else {
+					id = atoi(idStr);
+					if (id < 0 || id >= Sprayer::COUNT) {
+						response.responseCode = 400;
+						response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("id must be \"left\", \"right\", or between 0 and %d - was '%s'"), Sprayer::COUNT - 1, idStr);
+						response.content = responseBody;
+						return;
+					}
+				}
+			}
+			PutSprayer sprayerCommand;
+			ParseStatus result = parsePutSprayerCmd(request.content, request.contentLength, sprayerCommand);
+			if (result == ParseStatus::SUCCESS) {
+				if (id >= 0) {
+					sprayers[id].setStatus(sprayerCommand.status, sprayerCommand.delay);
+				}
+				else {
+					uint8_t end = (id == -2 ? Sprayer::COUNT >> 1 : Sprayer::COUNT);
+					for (uint8_t i = (id == -3 ? Sprayer::COUNT >> 1 : 0); i < end; i++) {
+						sprayers[i].setStatus(sprayerCommand.status, sprayerCommand.delay);
+					}
+				}
+				response.responseCode = 204;
+				response.contentLength = 0;
+				response.content = nullptr;
+			}
+			else {
+				handleParseError(request, response, result);
+			}
+		} break;
+		default: methodNotAllowedHandler(request, response);
+	}
 }
 
+static inline uint8_t parseHex(char nibble) {
+	if ('0' <= nibble && nibble <= '9') {
+		return nibble - '0';
+	}
+	else if ('A' <= nibble && nibble <= 'F') {
+		return nibble - 'A' + 10;
+	}
+	else if ('a' <= nibble && nibble <= 'f') {
+		return nibble - 'a' + 10;
+	}
+	return 255;
+}
 static void weedHandler(HttpRequest const& request, HttpResponse& response) {
-	notImplementedHandler(request, response);
+	if (request.method != HttpMethod::POST) {
+		methodNotAllowedHandler(request, response);
+		return;
+	}
+	// TODO consider returning "409 Conflict" if the hitch is up. Would need to document this decision
+	response.version = HttpVersion::Http_11;
+	char* cmdStr = request.uri + sizeof("/api/weeds") - 1;
+	bool cmdValid = *cmdStr == '/' && strlen(++cmdStr) == 5;
+	if (cmdValid) {
+		for (int i = 0; i < 5; i++) {
+			if (parseHex(cmdStr[i]) > 0x0F) {
+				cmdValid = false;
+				break;
+			}
+		}
+	}
+
+	if (!cmdValid) {
+		response.responseCode = 400;
+		response.contentLength = snprintf_P(responseBody, sizeof(responseBody) - 1, PSTR("Expected 5-character hex string in URL, not '%s'"), cmdStr);
+		response.content = responseBody;
+		return;
+	}
+	else {
+		for (int i = 0; i < Tiller::COUNT; i++) {
+			if (parseHex(cmdStr[i << 1])) {
+				// tiller i is at index 2*i in the command string. If it is not '0', we should lower the tiller to kill whatever's in the row
+				tillers[i].killWeed();
+			}
+		}
+		uint8_t sprayerCmd = parseHex(cmdStr[1]) | (parseHex(cmdStr[3]) << 4);
+		for (int i = 0; i < Sprayer::COUNT; i++) {
+			if (sprayerCmd & (1 << i)) {
+				sprayers[i].killWeed();
+			}
+		}
+		response.responseCode = 204;
+		response.contentLength = 0;
+		response.content = nullptr;
+	}
 }
 
 

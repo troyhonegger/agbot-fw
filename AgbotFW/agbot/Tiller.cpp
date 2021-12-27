@@ -66,9 +66,9 @@ bool Tiller::setHeight(uint8_t command, uint32_t delay) {
 void Tiller::killWeed() {
 	uint32_t delay;
 	// lowerTime = millis() + responseDelay - (raisedHeight - loweredHeight)*tillerLowerTime/100 - precision/2
-	delay = config->get(Setting::ResponseDelay) -
-		((config->get(Setting::TillerRaisedHeight) - config->get(Setting::TillerLoweredHeight)) * config->get(Setting::TillerLowerTime)
-		+ config->get(Setting::Precision) * 50) / 100;
+	delay = config->get(Setting::ResponseDelay)
+		- (config->get(Setting::TillerRaisedHeight) - config->get(Setting::TillerLoweredHeight)) * static_cast<long>(config->get(Setting::TillerLowerTime)) / 100l
+		- config->get(Setting::Precision) / 2;
 	setHeight(TillerCommand::LOWERED, delay);
 	delay = config->get(Setting::ResponseDelay) + config->get(Setting::Precision) / 2;
 	setHeight(TillerCommand::RAISED, delay);

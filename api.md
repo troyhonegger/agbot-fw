@@ -46,14 +46,14 @@ GET /api/config/HitchAccuracy
 
 #### PUT `/api/config/{setting}`
 `{setting}` should contain the name of the setting to configure.  
-Request body should be `application/json` and contain a single integer with the value of that setting.  
+Request body is `application/json` and contains a single integer with the value of that setting.  
 Response: 204 (No Content)
 
 
 #### GET `/api/tillers/{id}`
 `{id}` should be a number between 0 and 2.  
 0 represents the left tiller, 1 represents the middle tiller, and 2 represents the right tiller.  
-If `{id}` is omitted, all tillers should be returned as a JSON array.  
+If `{id}` is omitted, all tillers are returned as a JSON array.
 Response: 200 (OK), `application/json`
 ```json
 {
@@ -96,9 +96,8 @@ Response: 204 (No Content)
 
 
 #### GET `/api/sprayers/{id}`
-`{id}` should be a number between 0 and 7, or either `"left"` or `"right"`.  
-TODO - document mapping of IDs to physical sprayers.  
-If `{id}` is omitted, all sprayers should be returned as a JSON array.  
+`{id}` (optional) should be a number between 0 and 7. If `{id}` is omitted, all sprayers are returned as a JSON array.
+Sprayers 0-3 are on the left row, numbered front-to-back; and sprayers 4-7 are on the right row, numbered front-to-back.
 Response: 200 (OK), `application/json`
 ```json
 {
@@ -108,9 +107,8 @@ Response: 200 (OK), `application/json`
 
 
 #### PUT `/api/sprayers/{id}`
-`{id}` should be a number between 0 and 7, or either `"left"` or `"right"`.  
-TODO - document mapping of IDs to physical sprayers.
-If `{id}` is omitted, all sprayers should be set together.
+`{id}` (optional) should be a number between 0 and 7, or either `left` or `right`. If `{id}` is omitted, all sprayers are set together.
+Sprayers 0-3 are on the left row, numbered front-to-back; and sprayers 4-7 are on the right row, numbered front-to-back.
 Expects: `application/json`:
 ```json
 {
@@ -120,16 +118,34 @@ Expects: `application/json`:
   "delay": 500
 }
 ```
+Response: 204 (No Content)
 
 
 #### GET `/api/hitch`
 Returns `application/json`
 
 #### PUT `/api/hitch`
-Valid in either diagnostics or run mode. TODO - define schema
+TODO - define schema
 
 
 #### POST `/api/weeds/{weedStr}`
-`{weedStr}` is a 5-character hex bitfield.
-Returns 400 if in diagnostics mode.
+`{weedStr}` is a 5-character hex bitfield. It contains the set of weeds found in each of the five rows, from left to right:
+- The first character marks weeds found under the leftmost tiller
+- The second character marks weeds found under the left sprayers
+- The third character marks weeds found under the middle tiller
+- The fourth character marks weeds found under the right sprayers
+- The fifth character marks weeds found under the rightmost tiller
 
+The BOT has four tanks, so it works on up to four different weed types. Each weed type is a bit in the hex digit:
+- If the `0x01` bit is set, the weed will be sprayed from tank 1. (Sprayers 0 and 4)
+- If the `0x02` bit is set, the weed will be sprayed from tank 2. (Sprayers 1 and 5)
+- If the `0x04` bit is set, the weed will be sprayed from tank 3. (Sprayers 2 and 6)
+- If the `0x08` bit is set, the weed will be sprayed from tank 4. (Sprayers 3 and 7)
+
+Alternatively, one of the tanks may contain fertilizer instead of herbicide. Then you can set the corresponding bit
+to apply fertilizer to a portion of the crop.
+
+The controller will use its configured delay settings to calculate when the weed(s) are under the trailer, and turn on the
+sprayers/tillers to eliminate them.
+
+Response: 204 (No Content)
