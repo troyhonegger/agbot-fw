@@ -36,6 +36,7 @@ static HttpHandler hitchHandler;
 static HttpHandler tillerHandler;
 static HttpHandler sprayerHandler;
 static HttpHandler weedHandler;
+static HttpHandler heightSensorsHandler;
 
 static HttpHandler notImplementedHandler;
 static HttpHandler notFoundHandler;
@@ -102,6 +103,9 @@ static void apiHandler(HttpRequest const& request, HttpResponse& response) {
 	}
 	else if (!strncmp_P(request.uri, PSTR_AND_LENGTH("/api/hitch"))) {
 		hitchHandler(request, response);
+	}
+	else if (!strncmp_P(request.uri, PSTR_AND_LENGTH("/api/heightSensors"))) {
+		heightSensorsHandler(request, response);
 	}
 	else {
 		notFoundHandler(request, response);
@@ -218,7 +222,7 @@ static void tillerHandler(HttpRequest const& request, HttpResponse& response) {
 					memccpy_P(responseHeaders + response.headersLength, CONTENT_TYPE__APPLICATION_JSON,
 								'\0', sizeof(responseHeaders) - response.headersLength);
 					response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + sizeof(CONTENT_TYPE__APPLICATION_JSON) - 1);
-					response.contentLength = tillers[id].serialize(responseBody, sizeof(responseBody) - 1);
+					response.contentLength = tillers[id].serialize(responseBody, sizeof(responseBody));
 					response.content = responseBody;
 				}
 			}
@@ -232,7 +236,7 @@ static void tillerHandler(HttpRequest const& request, HttpResponse& response) {
 				*responseBody = '['; // opening array element
 				for (int i = 0; i < Tiller::COUNT; i++) {
 					if (len < sizeof(responseBody) - 1) {
-						len += tillers[i].serialize(responseBody + len, sizeof(responseBody) - 1 - len);
+						len += tillers[i].serialize(responseBody + len, sizeof(responseBody) - len);
 
 						if (len < sizeof(responseBody) - 1 && i + 1 < Tiller::COUNT) {
 							responseBody[len++] = ',';
@@ -303,7 +307,7 @@ static void sprayerHandler(HttpRequest const& request, HttpResponse& response) {
 				memccpy_P(responseHeaders + response.headersLength, CONTENT_TYPE__APPLICATION_JSON,
 							'\0', sizeof(responseHeaders) - response.headersLength);
 				response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + sizeof(CONTENT_TYPE__APPLICATION_JSON) - 1);
-				response.contentLength = sprayers[id].serialize(responseBody, sizeof(responseBody) - 1);
+				response.contentLength = sprayers[id].serialize(responseBody, sizeof(responseBody));
 				response.content = responseBody;
 			}
 			else {
@@ -316,7 +320,7 @@ static void sprayerHandler(HttpRequest const& request, HttpResponse& response) {
 				*responseBody = '['; // opening array element
 				for (int i = 0; i < Sprayer::COUNT; i++) {
 					if (len < sizeof(responseBody) - 1) {
-						len += sprayers[i].serialize(responseBody + len, sizeof(responseBody) - 1 - len);
+						len += sprayers[i].serialize(responseBody + len, sizeof(responseBody) - len);
 
 						if (len < sizeof(responseBody) - 1 && i + 1 < Sprayer::COUNT) {
 							responseBody[len++] = ',';
@@ -432,6 +436,23 @@ static void weedHandler(HttpRequest const& request, HttpResponse& response) {
 		response.responseCode = 204;
 		response.contentLength = 0;
 		response.content = nullptr;
+	}
+}
+
+static void heightSensorsHandler(HttpRequest const& request, HttpResponse& response) {
+	if (request.method != HttpMethod::GET) {
+		methodNotAllowedHandler(request, response);
+	}
+	else {
+		response.version = HttpVersion::Http_11;
+		response.responseCode = 200;
+		memccpy_P(responseHeaders + response.headersLength, CONTENT_TYPE__APPLICATION_JSON,
+					'\0', sizeof(responseHeaders) - response.headersLength);
+		response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + sizeof(CONTENT_TYPE__APPLICATION_JSON) - 1);
+
+		response.headers = responseHeaders;
+		response.contentLength = heightSensors.serialize(responseBody, sizeof(responseBody));
+		response.content = responseBody;
 	}
 }
 

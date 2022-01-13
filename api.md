@@ -128,6 +128,32 @@ Returns `application/json`
 TODO - define schema
 
 
+#### GET `/api/heightSensors`
+The BOT has 3 LIDAR height sensors on the mounting bar, aligned with each of the 3 multivators. These sensors measure
+the distance to the ground, and can be used to lower the tillers into the ground on uneven or sloping surfaces.
+
+Response: 200 OK, `application/json`:
+```json
+{
+  "hwError": "string", // if missing/falsey, there is no error. If present/truthy, sensors may be an empty array
+  "sensors": [
+    {
+      "paired": true, // true if controller is connected to sensor. This should occur within 100's of ms of a sensor power cycle.
+      "serial": 58124, // 16-bit unique ID of sensor. Assigned by manufacturer and burned into ROM
+      "height": 38 // height above the ground in cm
+    },
+    {
+      "paired": false
+      // unpaired sensors will not have serial or height properties
+    },
+    {
+      "paired": false
+      // unpaired sensors will not have serial or height properties
+    }
+  ]
+}
+```
+
 #### POST `/api/weeds/{weedStr}`
 `{weedStr}` is a 5-character hex bitfield. It contains the set of weeds found in each of the five rows, from left to right:
 - The first character marks weeds found under the leftmost tiller

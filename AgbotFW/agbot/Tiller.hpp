@@ -99,7 +99,8 @@ class Tiller {
 		// Checks for and performs any scheduled operations. This should be called every iteration of the main controller loop.
 		void update(void);
 
-		// Writes the information pertaining to this tiller to the given string. Writes at most n characters, and returns the number of
-		// characters that written (or that would have been written, if the size exceeds n)
+		// Writes the information pertaining to this tiller to the given string. Writes at most n characters, including the null
+		// terminator, and returns the number of characters in the serialized string, excluding the null terminator. If the string length
+		// exceeds n, returns the number of characters that would have been in the string, were there enough space.
 		size_t serialize(char* str, size_t n) const;
 };
