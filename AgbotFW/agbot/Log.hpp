@@ -55,13 +55,13 @@ public:
 extern LogClass Log;
 
 #if LOG_LEVEL <= LOG_LEVEL_ERROR
-#define LOG_ERROR(format, ...)			Log.write_P(LOG_LEVEL_ERROR, PSTR(format), __VA_ARGS__)
+#define LOG_ERROR(format, ...)			Log.write_P(LOG_LEVEL_ERROR, PSTR(format), ## __VA_ARGS__)
 #else
 #define LOG_ERROR(format, ...)
 #endif
 
 #if LOG_LEVEL <= LOG_LEVEL_WARNING
-#define LOG_WARNING(format, ...)		Log.write_P(LOG_LEVEL_WARNING, PSTR(format), __VA_ARGS__)
+#define LOG_WARNING(format, ...)		Log.write_P(LOG_LEVEL_WARNING, PSTR(format), ## __VA_ARGS__)
 #else
 #define LOG_WARNING(format, ...)
 #endif

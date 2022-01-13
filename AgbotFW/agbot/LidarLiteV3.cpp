@@ -6,40 +6,36 @@
  */ 
 
 #include "Common.hpp"
+#include "Log.hpp"
 
-#include <EEPROM.h>
 #include <Wire.h>
 
 #include "LidarLiteV3.hpp"
 
-#define LIDAR_EEPROM_OFFSET(id)		(256 + (id) * sizeof(LidarLiteV3::serial))
-#define LIDAR_I2C_ID(id)			(LidarLiteV3::START_ADDRESS + (id))
+#define LIDAR_I2C_ID(id)			(LidarLiteSensor::START_ADDRESS + ((id) << 1))
 
 // LIDAR registers
-#define ACQ_COMMAND		0x00
-#define STATUS			0x01
-#define FULL_DELAY_HIGH	0x0f
-#define FULL_DELAY_LOW	0x10
-#define UNIT_ID_HIGH	0x16
-#define UNIT_ID_LOW		0x17
-#define I2C_ID_HIGH		0x18
-#define I2C_ID_LOW		0x19
-#define I2C_SEC_ADDR	0x1a
-#define I2C_CONFIG		0x1e
+#define ACQ_COMMAND			0x00
+#define STATUS				0x01
+#define ACQ_CONFIG			0x04
+#define FULL_DELAY_HIGH		0x0f
+#define FULL_DELAY_LOW		0x10
+#define OUTER_LOOP_COUNT	0x11
+#define UNIT_ID_HIGH		0x16
+#define UNIT_ID_LOW			0x17
+#define I2C_ID_HIGH			0x18
+#define I2C_ID_LOW			0x19
+#define I2C_SEC_ADDR		0x1a
+#define I2C_CONFIG			0x1e
 
 // LIDAR register value definitions
 #define ACQ_COMMAND__MEASURE_NO_CORRECTION		0x03
 #define ACQ_COMMAND__MEASURE_WITH_CORRECTION	0x04
 #define I2C_CONFIG__DISABLE_DEFAULT_ADDRESS		0x08
+#define ACQ_CONFIG__VALUES						0x28 /* sensor configuration - each bit has meaning, see datasheet for details. */
+#define OUTER_LOOP_COUNT__CONTINUOUS			0xFF
 
-// State machine states
-#define LIDAR_STATE__UNINITIALIZED			0
-#define LIDAR_STATE__SET_ADDRESS			1
-#define LIDAR_STATE__SET_ADDRESS_FAIL		2
-#define LIDAR_STATE__CONFIGURE				3
-#define LIDAR_STATE__READY					4 /* SM is considered "initialized" if state >= READY */
-#define LIDAR_STATE__BUSY					5
-#define LIDAR_STATE__MEASURED				6
+#define ADJACENT_REGISTER						0x80 /* Per the datasheet, set this bit to read/write two adjacent registers at once*/
 
 static inline int readRegister(uint8_t i2cAddress, uint8_t regAddress) {
 	uint8_t byteCount =
@@ -57,128 +53,343 @@ static inline int readRegister(uint8_t i2cAddress, uint8_t regAddress) {
 	}
 }
 
-static inline void writeRegister(uint8_t i2cAddress, uint8_t regAddress, uint8_t value) {
+static int32_t readAdjacentRegisters(uint8_t i2cAddress, uint8_t regAddress) {
+	uint8_t byteCount =
+		Wire.requestFrom(i2cAddress,
+							2, // read size
+							regAddress | ADJACENT_REGISTER,
+							1, // register size,
+							true // sendStop
+						);
+	if (byteCount == 2) {
+		uint16_t result = Wire.read() & 0xff;
+		result <<= 8;
+		result |= Wire.read() & 0xff;
+		return result;
+	}
+	else {
+		return -1;
+	}
+}
+
+static inline bool writeRegister(uint8_t i2cAddress, uint8_t regAddress, uint8_t value) {
 	Wire.beginTransmission(i2cAddress);
 	Wire.write(regAddress);
 	Wire.write(value);
-	Wire.endTransmission();
+	// endTransmission() returns 0 for success or nonzero for error (NACK, etc)
+	return !Wire.endTransmission();
 }
 
-void LidarLiteV3::begin(uint8_t id) {
-	LidarLiteV3::id = id;
-	EEPROM.get(LIDAR_EEPROM_OFFSET(id), serial);
+static inline bool writeAdjacentRegisters(uint8_t i2cAddress, uint8_t regAddress, uint16_t value) {
+	Wire.beginTransmission(i2cAddress);
+	Wire.write(regAddress | ADJACENT_REGISTER);
+	Wire.write(value >> 8);
+	Wire.write(value & 0xff);
+	// endTransmission() returns 0 for success or nonzero for error (NACK, etc)
+	return !Wire.endTransmission();
+}
+
+#define LIDAR_STATE__UNPAIRED		0
+#define LIDAR_STATE__CONFIGURING	1
+#define LIDAR_STATE__WAITFORREAD	2
+#define LIDAR_STATE__READ			3
+
+#define READ_DELAY					10 /* ms. Should correspond to the value of the hardware's MEASURE_DELAY register */
+
+void LidarLiteSensor::begin(uint8_t id) {
+	LidarLiteSensor::id = id;
 	height = 0;
-	state = LIDAR_STATE__UNINITIALIZED;
+	enterState_Unpaired();
 }
 
-bool LidarLiteV3::isInitialized(void) { return state >= LIDAR_STATE__READY; }
-
-void LidarLiteV3::update(void) {
-	int readValue;
-	bool stop;
-	do {
-		stop = true;
-		switch (state) {
-			case LIDAR_STATE__UNINITIALIZED:
-			// Unlock the correct chip by writing its unique serial number to I2C_ID_HIGH and I2C_ID_LOW
-			writeRegister(DEFAULT_ADDRESS, I2C_ID_HIGH, (serial >> 8) & 0x00FF);
-			writeRegister(DEFAULT_ADDRESS, I2C_ID_LOW, serial & 0x00FF);
-			// Write new I2C address of sensor to I2C_SEC_ADDR. There may be multiple slaves at the default
-			// address, but the write will only succeed on the one whose serial number matches I2C_ID
-			writeRegister(DEFAULT_ADDRESS, I2C_SEC_ADDR, LIDAR_I2C_ID(id));
-			state = LIDAR_STATE__SET_ADDRESS;
-			break;
-
-			case LIDAR_STATE__SET_ADDRESS:
-			readValue = readRegister(LIDAR_I2C_ID(id), STATUS);
-			if (readValue >= 0) {
-				// successfully set I2C address. We can now proceed with the rest of the configuration
-				state = LIDAR_STATE__CONFIGURE;
-			}
-			else {
-				// that address wasn't on the network
-				state = LIDAR_STATE__SET_ADDRESS_FAIL;
-			}
-			break;
-
-			case LIDAR_STATE__SET_ADDRESS_FAIL:
-			readValue = readRegister(START_ADDRESS, UNIT_ID_HIGH);
-			if (readValue >= 0) {
-				uint16_t newSerial = readValue << 8;
-				readValue = readRegister(START_ADDRESS, UNIT_ID_LOW);
-				if (readValue >= 0) {
-					newSerial |= readValue & 0x00FF;
-					EEPROM.update(LIDAR_EEPROM_OFFSET(id),		(uint8_t) (newSerial & 0xFF));
-					EEPROM.update(LIDAR_EEPROM_OFFSET(id) + 1,	(uint8_t) (newSerial >> 8));
-					// try again from ground zero
-					serial = newSerial;
-					state = LIDAR_STATE__UNINITIALIZED;
+void LidarLiteSensor::update(void) {
+	switch (state) {
+		case LIDAR_STATE__UNPAIRED:
+			if (paired) {
+				bool success = enterState_Configuring();
+				if (success) {
+					enterState_WaitForRead();
 				}
 				else {
-					// no one is listening at START_ADDRESS. Keep trying
-					state = LIDAR_STATE__SET_ADDRESS_FAIL;
+					enterState_Unpaired();
 				}
 			}
-			else {
-				// no one is listening at START_ADDRESS. Keep trying
-				state = LIDAR_STATE__SET_ADDRESS_FAIL;
+		break;
+		case LIDAR_STATE__WAITFORREAD:
+			if (timer.isUp()) {
+				bool success = enterState_Read();
+				if (success) {
+					enterState_WaitForRead();
+				}
+				else {
+					enterState_Unpaired();
+				}
 			}
-			break;
-
-			case LIDAR_STATE__CONFIGURE:
-			writeRegister(LIDAR_I2C_ID(id), I2C_CONFIG, I2C_CONFIG__DISABLE_DEFAULT_ADDRESS);
-			// TODO any other settings should be set here.
-			// Continuous measurements would be cool, but I think there's a race condition
-			// if the data updates in between reading the most and least significant bytes.
-			state = LIDAR_STATE__READY;
-			break;
-
-			case LIDAR_STATE__READY:
-			if ((numReadings & 0x1F)) { // if count is not divisible by 32
-				writeRegister(LIDAR_I2C_ID(id), ACQ_COMMAND, ACQ_COMMAND__MEASURE_NO_CORRECTION);
-			}
-			else {
-				writeRegister(LIDAR_I2C_ID(id), ACQ_COMMAND, ACQ_COMMAND__MEASURE_WITH_CORRECTION);
-			}
-			state = LIDAR_STATE__BUSY;
-			break;
-
-			case LIDAR_STATE__BUSY:
-			readValue = readRegister(LIDAR_I2C_ID(id), STATUS);
-			if (!(readValue & 1)) { // bit 0 of status register is 1 if busy, 0 if complete
-				state = LIDAR_STATE__MEASURED;
-				stop = false;
-			}
-			break;
-
-			case LIDAR_STATE__MEASURED:
-			readValue = readRegister(LIDAR_I2C_ID(id), FULL_DELAY_HIGH);
-			height = readValue << 8;
-			readValue = readRegister(LIDAR_I2C_ID(id), FULL_DELAY_LOW);
-			height |= (readValue & 0xFF);
-			numReadings++;
-			state = LIDAR_STATE__READY;
-			break;
-		}
-	} while (!stop);
+		break;
+		default:
+			assert(0);
+		break;
+	}
 }
 
+void LidarLiteSensor::enterState_Unpaired(void) {
+	// mark as unpaired
+	paired = false;
+
+	state = LIDAR_STATE__UNPAIRED;
+}
+
+bool LidarLiteSensor::enterState_Configuring(void) {
+	bool ret;
+	
+	// send sensor configuration
+	ret = writeRegister(LIDAR_I2C_ID(id), ACQ_CONFIG, ACQ_CONFIG__VALUES);
+	if (ret) {
+		ret = writeRegister(LIDAR_I2C_ID(id), OUTER_LOOP_COUNT, OUTER_LOOP_COUNT__CONTINUOUS);
+	}
+	if (ret) {
+		ret = writeRegister(LIDAR_I2C_ID(id), ACQ_COMMAND, ACQ_COMMAND__MEASURE_WITH_CORRECTION);
+	}
+	state = LIDAR_STATE__CONFIGURING;
+	return ret;
+}
+
+void LidarLiteSensor::enterState_WaitForRead(void) {
+	timer.restart(READ_DELAY);
+
+	state = LIDAR_STATE__WAITFORREAD;
+}
+
+bool LidarLiteSensor::enterState_Read(void) {
+	int32_t result = readAdjacentRegisters(LIDAR_I2C_ID(id), FULL_DELAY_HIGH);
+	if (result < 0) {
+		return false;
+	}
+	else {
+		//TODO-NOWNOW test accuracy. may have to apply a calibration. Per datasheet response is nonlinear below 1m
+		height = static_cast<uint16_t>(result);
+		return true;
+	}
+}
+
+size_t LidarLiteSensor::serialize(char* str, size_t n) const {
+	if (paired) {
+		return snprintf_P(str, n, PSTR("{\"paired\":true,\"serial\":%d,\"height\":%d}"), getSerial(), getHeight());
+	}
+	else {
+		return snprintf_P(str, n, PSTR("{\"paired\":false}"));
+	}
+}
 
 void LidarLiteBank::begin(void) {
-	numInitialized = 0;
+	enterState_Waiting();
 	for (uint8_t i = 0; i < NUM_SENSORS; i++) {
 		sensors[i].begin(i);
 	}
 }
 
+#define LIDARBANK_STATE__WAITING			0
+#define LIDARBANK_STATE__SENSOR_POWER_CYCLE	1
+#define LIDARBANK_STATE__CONFLICT_CHECK		2
+#define LIDARBANK_STATE__ADDRESS_CONFLICT	3
+#define LIDARBANK_STATE__NODE_STARTUP		4
+#define LIDARBANK_STATE__NODE_PAIR			5
+#define LIDARBANK_STATE__NODE_PAIR_DONE		6
+
+#define CONFLICT_CHECK_DELAY					50 /* ms */
+#define STARTUP_DELAY							50 /* ms */
+#define ADDRESS_CONFLICT_RETRY_DELAY			1000 /* ms */
+
+
 void LidarLiteBank::update(void) {
-	for (int i = 0; i < numInitialized; i++) {
+	uint8_t newNumPaired = 0;
+	switch (state) {
+		case LIDARBANK_STATE__WAITING:
+			for (int i = 0; i < NUM_SENSORS; i++) {
+				if (!sensors[i].paired) {
+					newNumPaired++;
+				}
+			}
+			numPaired = newNumPaired;
+			if (numPaired != NUM_SENSORS) {
+				enterState_SensorPowerCycle();
+			}
+		break;
+		case LIDARBANK_STATE__SENSOR_POWER_CYCLE:
+			for (int i = 0; i < NUM_SENSORS; i++) {
+				if (!sensors[i].paired) {
+					newNumPaired++;
+				}
+			}
+			if (newNumPaired != numPaired) {
+				numPaired = newNumPaired;
+				enterState_SensorPowerCycle();
+			}
+			else if (timer.isUp()) {
+				enterState_ConflictCheck();
+				if (success) {
+					enterState_AddressConflict();
+				}
+				else {
+					enterState_NodeStartup();
+				}
+			}
+		break;
+		case LIDARBANK_STATE__ADDRESS_CONFLICT:
+			if (timer.isUp()) {
+				enterState_Waiting();
+			}
+		break;
+		case LIDARBANK_STATE__NODE_STARTUP:
+			if (timer.isUp()) {
+				enterState_NodePair();
+			}
+		break;
+		case LIDARBANK_STATE__NODE_PAIR:
+			if (success) {
+				enterState_NodePairDone();
+				enterState_Waiting();
+			}
+			else {
+				enterState_Waiting();
+			}
+		break;
+		default:
+			assert(0);
+		break;
+	}
+
+	for (int i = 0; i < NUM_SENSORS; i++) {
 		sensors[i].update();
 	}
-	if (numInitialized < NUM_SENSORS) {
-		sensors[numInitialized].update();
-		if (sensors[numInitialized].isInitialized()) {
-			numInitialized++;
+}
+
+void LidarLiteBank::enterState_Waiting(void) {
+	state = LIDARBANK_STATE__WAITING;
+}
+
+void LidarLiteBank::enterState_SensorPowerCycle(void) {
+	// disable all unpaired nodes
+	for (int i = 0; i < NUM_SENSORS; i++) {
+		if (!sensors[i].paired) {
+			pinMode(ENABLE_HARDLINE_START_PIN + i, OUTPUT);
+			digitalWrite(ENABLE_HARDLINE_START_PIN + i, LOW);
 		}
 	}
+
+	// set conflict check timer
+	timer.restart(CONFLICT_CHECK_DELAY);
+
+	state = LIDARBANK_STATE__SENSOR_POWER_CYCLE;
+}
+
+void LidarLiteBank::enterState_ConflictCheck(void) {
+	// read STATUS register of slave 0x62
+	int status = readRegister(LidarLiteSensor::DEFAULT_ADDRESS, STATUS);
+
+	// set status (true/ACK for >= 0, false/NACK otherwise)
+	success = status >= 0;
+
+	state = LIDARBANK_STATE__CONFLICT_CHECK;
+}
+
+void LidarLiteBank::enterState_AddressConflict(void) {
+	// log error
+	LOG_ERROR("LidarLiteV3 I2C address conflict. This probably means a sensors' enable line is floating.");
+
+	// set addrConflict flag
+	addrConflict = true;
+
+	// set retry timer
+	timer.restart(ADDRESS_CONFLICT_RETRY_DELAY);
+
+	// disable all nodes
+	for (int i = 0; i < NUM_SENSORS; i++) {
+		pinMode(ENABLE_HARDLINE_START_PIN + i, OUTPUT);
+		digitalWrite(ENABLE_HARDLINE_START_PIN + i, LOW);
+	}
+
+	state = LIDARBANK_STATE__ADDRESS_CONFLICT;
+}
+
+void LidarLiteBank::enterState_NodeStartup(void) {
+	// set currentSensor to an unpaired sensor
+	do {
+		currentSensor++;
+		if (currentSensor >= NUM_SENSORS) {
+			currentSensor = 0;
+		}
+	} while (sensors[currentSensor].paired);
+
+	// enable currentSensor
+	pinMode(ENABLE_HARDLINE_START_PIN + currentSensor, INPUT); // setting pin as high-impedance allows the sensor's internal pullup to drive it high
+
+	// set startup timer
+	timer.restart(STARTUP_DELAY);
+
+	// unset addrConflict
+	addrConflict = false;
+
+	state = LIDARBANK_STATE__NODE_STARTUP;
+}
+
+void LidarLiteBank::enterState_NodePair(void) {
+	// read serial number of slave 0x62 (DEFAULT_ADDRESS)
+	int32_t serial = readAdjacentRegisters(LidarLiteSensor::DEFAULT_ADDRESS, UNIT_ID_HIGH);
+	success = serial >= 0;
+
+	// IF the sensor responded, write its serial number back to it, to unlock the I2C_SEC_ADDR register
+	if (success) {
+		success = writeAdjacentRegisters(LidarLiteSensor::DEFAULT_ADDRESS, I2C_ID_HIGH, static_cast<uint16_t>(serial));
+	}
+	// IF the sensor responded, set its secondary I2C address
+	if (success) {
+		success = writeRegister(LidarLiteSensor::DEFAULT_ADDRESS, I2C_SEC_ADDR, LIDAR_I2C_ID(currentSensor));
+
+		// record serial number
+		sensors[currentSensor].serial = static_cast<uint16_t>(serial);
+	}
+
+	state = LIDARBANK_STATE__NODE_PAIR;
+}
+
+void LidarLiteBank::enterState_NodePairDone(void) {
+	// disable 0x62 address using new address
+	if (writeRegister(LIDAR_I2C_ID(currentSensor), I2C_CONFIG, I2C_CONFIG__DISABLE_DEFAULT_ADDRESS)) {
+		// IF ack received, mark sensor as paired
+		sensors[currentSensor].paired = true;
+	}
+
+	state = LIDARBANK_STATE__NODE_PAIR_DONE;
+}
+
+size_t LidarLiteBank::serialize(char* str, size_t n) const {
+	if (addrConflict) {
+		return snprintf_P(str, n, PSTR("{\"hwError\":\"I2C address conflict - sensors cannot be identified. "
+			"Check sensor wiring, particularly the enable lines.\",\"sensors\":[]}"));
+	}
+
+	size_t len = snprintf_P(str, n, PSTR("{\"sensors\": ["));
+	for (int i = 0; i < NUM_SENSORS; i++) {
+		len += sensors[i].serialize(str + len, len < n ? n - len : 0);
+		if (len < n) {
+			str[len] = (i + 1 == NUM_SENSORS) ? ']' : ',';
+		}
+		len++;
+	}
+
+	// add closing brace
+	if (len < n) {
+		str[len] = '}';
+	}
+	len++;
+
+	// add null terminator
+	if (len < n) {
+		str[len] = '\0';
+	}
+	else if (n) {
+		str[n - 1] = '\0';
+	}
+	return len;
 }

@@ -14,10 +14,12 @@
 #include "Tiller.hpp"
 #include "Sprayer.hpp"
 #include "Throttle.hpp"
+#include "LidarLiteV3.hpp"
 
 extern Config config;
 extern Hitch hitch;
 extern Tiller tillers[Tiller::COUNT];
 extern Sprayer sprayers[Sprayer::COUNT];
 extern Throttle throttle;
+extern LidarLiteBank heightSensors;
 

@@ -14,6 +14,7 @@ Hitch hitch;
 Tiller tillers[Tiller::COUNT];
 Sprayer sprayers[Sprayer::COUNT];
 Throttle throttle;
+LidarLiteBank heightSensors;
 
 EthernetServer ethernetSrvr(80);
 HttpServer server(ethernetSrvr, 4, httpHandler);
@@ -45,6 +46,10 @@ void setup() {
 	Ethernet.setRetransmissionCount(3);
 	Ethernet.setRetransmissionTimeout(150);
 	server.begin();
+
+	Wire.begin();
+	Wire.setClock(400000L);
+	heightSensors.begin();
 
 	LOG_INFO("Setup complete.");
 }
@@ -177,6 +182,8 @@ void loop() {
 	else { throttle.down(); }
 	throttle.update();
 
+	heightSensors.update();
+
 #ifdef TIMING_ANALYSIS
 	{
 		ncycles++;
@@ -207,4 +214,4 @@ void loop() {
 #endif
 }
 
-#endif // DEMO_MODE
+#endif // BENCH_TESTS
