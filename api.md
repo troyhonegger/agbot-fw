@@ -57,25 +57,26 @@ If `{id}` is omitted, all tillers are returned as a JSON array.
 Response: 200 (OK), `application/json`
 ```json
 {
-  "height": "20",
+  // an integer between 0 and 100.
+    //   0 -> fully lowered
+    // 100 -> fully raised
+  "height": 20,
+
+  // One of the following:
+    // an integer between 0 and 100 -> tiller wants to achieve this height.
+    // "STOP" -> tiller is stopped regardless of its height.
+    // "UP" -> tiller is raising regardless of its height.
+    // "DOWN" -> tiller is lowering regardless its of height.
+    // "LOWERED" -> tiller wants to remain just below the surface.
+    // "RAISED" -> tiller wants to remain just above the surface.
   "target": "LOWERED",
+
+  // One of the following:
+    // -1 -> lowering
+    //  0 -> stopped
+    //  1 -> raising
   "dh": 0
 }
-
-"dh" is one of the following:
- -1: lowering
-  0: stopped
-  1: raising
-"height" is an integer between 0 and 100
-  0: fully lowered
-  100: fully raised
-"target" is one of the following:
-  an integer between 0 and 100: tiller wants to achieve this height.
-  "STOP": Tiller is stopped regardless of its height.
-  "UP": Tiller is raising regardless of its height.
-  "DOWN": Tiller is lowering regardless of its height.
-  "LOWERED": Tiller wants to remain just below the surface.
-  "RAISED": Tiller wants to remain just above the surface.
 ```
 
 
@@ -122,11 +123,45 @@ Response: 204 (No Content)
 
 
 #### GET `/api/hitch`
-Returns `application/json`
+Gives the status of the trailer's 3-point hitch. The hitch should be raised for transportation
+and lowered when moving through the field.
+
+Response: 200 (OK), `application/json`
+```json
+{
+  // an integer between 0 and 100.
+    //   0 -> fully lowered
+    // 100 -> fully raised
+  "height": 20,
+
+  // One of the following:
+    // an integer between 0 and 100 -> hitch wants to achieve this height.
+    // "STOP" -> hitch is stopped regardless of its height.
+  "target": "STOP",
+
+  // One of the following:
+    // -1 -> lowering
+    //  0 -> stopped
+    //  1 -> raising
+  "dh": 0
+}
+```
 
 #### PUT `/api/hitch`
-TODO - define schema
+Sets the status of the trailer's 3-point hitch. The hitch should be raised for transportation
+and lowered when moving through the field.
 
+Expects: `application/json` object:
+```json
+{
+  // required. Should be one of the following:
+    // an integer between 0 and 100 -> hitch wants to achieve this height.
+    // "STOP" -> hitch should stop regardless of height.
+    // "UP" -> target the current value of config setting "HitchRaisedHeight"
+    // "DOWN" -> target the current value of config setting "HitchLoweredHeight"
+  "targetHeight": "STOP"
+}
+```
 
 #### GET `/api/heightSensors`
 The BOT has 3 LIDAR height sensors on the mounting bar, aligned with each of the 3 multivators. These sensors measure

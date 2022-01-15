@@ -16,6 +16,7 @@ static jsmn_parser jsonParser;
 static jsmntok_t jsonBuffer[NUM_JSON_TOKENS];
 
 #include "Tiller.hpp"
+#include "Hitch.hpp"
 
 // TODO watch out - this leads to a separate PSTR allocation for each call. May be wasteful if you compare against the same string in multiple places.
 #define TOKEN_IS(json, tok, s) ((tok).type == JSMN_STRING && (tok).end - (tok).start == sizeof(s) - 1 && !strncmp_P((json) + (tok).start, PSTR(s), sizeof(s) - 1))
@@ -164,4 +165,62 @@ ParseStatus parsePutSprayerCmd(char* jsonString, size_t n, struct PutSprayer& re
 	}
 	
 	return hasStatus ? ParseStatus::SUCCESS : ParseStatus::SEMANTIC_ERROR;
+}
+
+ParseStatus parsePutHitchCmd(char* jsonString, size_t n, struct PutHitch& result) {
+	jsmn_init(&jsonParser);
+	int nTok = jsmn_parse(&jsonParser, jsonString, n, jsonBuffer, NUM_JSON_TOKENS);
+
+	if (nTok < 0) {
+		switch (nTok) {
+			case JSMN_ERROR_NOMEM:
+			return ParseStatus::BUFFER_OVERFLOW;
+			default: // case JSMN_ERROR_INVAL: case JSMN_ERROR_PART:
+			return ParseStatus::SYNTAX_ERROR;
+		}
+	}
+	else if (jsonBuffer[0].type != JSMN_OBJECT) {
+		return ParseStatus::SEMANTIC_ERROR;
+	}
+
+	bool hasTargetHeight = false;
+
+	for (int i = 1; i < nTok - 1; i++) {
+		jsmntok_t* tok = jsonBuffer + i;
+		if (tok->parent > 0) {
+			continue; // skip past any child objects, etc. We only care about direct children of the root
+		}
+
+		if (TOKEN_IS(jsonString, *tok, "targetHeight")) {
+			if (hasTargetHeight) {
+				return ParseStatus::SEMANTIC_ERROR;
+			}
+			tok++;
+			i++;
+			hasTargetHeight = true;
+			if (tok->type == JSMN_PRIMITIVE && *(jsonString + tok->start) >= '0' && *(jsonString + tok->start) <= '9') {
+				// jsonString is not null-terminated, but atoi() is safe here, as the string must be valid JSON ending with '}',
+				// and atoi stops at the first non-numeric character
+				int cmd = atoi(jsonString + tok->start);
+				if (cmd < 0 || cmd > Hitch::MAX_HEIGHT) {
+					return ParseStatus::SEMANTIC_ERROR;
+				}
+				result.targetHeight = static_cast<uint8_t>(cmd);
+			}
+			else if (TOKEN_IS(jsonString, *tok, "STOP")) {
+				result.targetHeight = HITCH_CMD__STOP;
+			}
+			else if (TOKEN_IS(jsonString, *tok, "UP")) {
+				result.targetHeight = HITCH_CMD__UP;
+			}
+			else if (TOKEN_IS(jsonString, *tok, "DOWN")) {
+				result.targetHeight = HITCH_CMD__DOWN;
+			}
+			else {
+				return ParseStatus::SEMANTIC_ERROR;
+			}
+		}
+	}
+
+	return hasTargetHeight ? ParseStatus::SUCCESS : ParseStatus::SEMANTIC_ERROR;
 }

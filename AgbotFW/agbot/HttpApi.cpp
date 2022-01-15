@@ -203,7 +203,48 @@ static void gpsHandler(HttpRequest const& request, HttpResponse& response) {
 }
 
 static void hitchHandler(HttpRequest const& request, HttpResponse& response) {
-	notImplementedHandler(request, response);
+	response.version = HttpVersion::Http_11;
+	switch (request.method) {
+		case HttpMethod::GET:
+			response.responseCode = 200;
+			memccpy_P(responseHeaders + response.headersLength, CONTENT_TYPE__APPLICATION_JSON,
+						'\0', sizeof(responseHeaders) - response.headersLength);
+			response.headersLength = MIN(sizeof(responseHeaders), response.headersLength + sizeof(CONTENT_TYPE__APPLICATION_JSON) - 1);
+			response.contentLength = hitch.serialize(responseBody, sizeof(responseBody));
+			response.content = responseBody;
+		break;
+		case HttpMethod::PUT: {
+			PutHitch hitchCommand;
+			ParseStatus result = parsePutHitchCmd(request.content, request.contentLength, hitchCommand);
+			if (result == ParseStatus::SUCCESS) {
+				// actually execute the command
+				switch (hitchCommand.targetHeight) {
+					case HITCH_CMD__DOWN:
+						hitch.lower();
+					break;
+					case HITCH_CMD__UP:
+						hitch.raise();
+					break;
+					case HITCH_CMD__STOP:
+						hitch.stop();
+					break;
+					default: // targetHeight is an integer between 0 and 100
+						hitch.setTargetHeight(hitchCommand.targetHeight);
+					break;
+				}
+				// send a 204 No Content to indicate success
+				response.responseCode = 204;
+				response.contentLength = 0;
+				response.content = nullptr;
+			}
+			else {
+				handleParseError(request, response, result);
+			}
+		} break;
+		default:
+			methodNotAllowedHandler(request, response);
+		break;
+	}
 }
 
 static void tillerHandler(HttpRequest const& request, HttpResponse& response) {

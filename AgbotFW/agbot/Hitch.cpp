@@ -11,9 +11,6 @@
 #include "Config.hpp"
 #include "Hitch.hpp"
 
-static const char HITCH_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hhd,\"target\":%hhu}";
-static const char HITCH_STOPPED_FMT_STR[] PROGMEM = "{\"height\":%hhu,\"dh\":%hhd,\"target\":\"STOP\"}";
-
 uint8_t Hitch::getActualHeight() const {
 	actualHeight = map(analogRead(HEIGHT_SENSOR_PIN), 1023, 204, 0, MAX_HEIGHT);
 	return actualHeight;
@@ -77,9 +74,9 @@ void Hitch::updateClutch() {
 
 size_t Hitch::serialize(char* str, size_t n) const {
 	if (targetHeight == STOP) {
-		return snprintf_P(str, n, HITCH_STOPPED_FMT_STR, actualHeight, getDH());
+		return snprintf_P(str, n, PSTR("{\"height\":%hhu,\"dh\":%hhd,\"target\":\"STOP\"}"), actualHeight, getDH());
 	}
 	else {
-		return snprintf_P(str, n, HITCH_FMT_STR, actualHeight, getDH(), targetHeight);
+		return snprintf_P(str, n, PSTR("{\"height\":%hhu,\"dh\":%hhd,\"target\":%hhu}"), actualHeight, getDH(), targetHeight);
 	}
 }

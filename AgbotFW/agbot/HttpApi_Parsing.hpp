@@ -29,3 +29,14 @@ struct PutSprayer {
 };
 
 ParseStatus parsePutSprayerCmd(char* jsonString, size_t n, struct PutSprayer& result);
+
+
+#define HITCH_CMD__DOWN	248
+#define HITCH_CMD__UP	249
+#define HITCH_CMD__STOP	250
+
+struct PutHitch {
+	uint8_t targetHeight;
+};
+
+ParseStatus parsePutHitchCmd(char* jsonString, size_t n, struct PutHitch& result);
