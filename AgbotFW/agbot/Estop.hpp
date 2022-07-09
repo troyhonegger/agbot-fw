@@ -24,7 +24,7 @@
 
 class Estop {
 	private:
-		static const uint8_t HW_PIN = 23;
+		static const uint8_t HW_PIN = 53;
 		static const uint16_t PULSE_LEN = 100;
 
 		unsigned long whenEngaged;

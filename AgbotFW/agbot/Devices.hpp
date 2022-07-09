@@ -15,7 +15,9 @@
 #include "Sprayer.hpp"
 #include "Throttle.hpp"
 #include "LidarLiteV3.hpp"
+#include "Estop.hpp"
 
+extern Estop estop;
 extern Config config;
 extern Hitch hitch;
 extern Tiller tillers[Tiller::COUNT];

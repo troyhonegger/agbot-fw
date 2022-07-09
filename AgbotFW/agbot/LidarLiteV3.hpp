@@ -29,9 +29,9 @@
  * Therefore, for optimal responsiveness, this implementation tries to send as little as possible over I2C,
  * and breaks large read/write operations into several cycles.
  *
- * During pairing, up to 12 bytes may be sent in one cycle, to pair a single sensor. Once paired,
- * a sensor sends at most a 5-byte message in any given cycle. Therefore, up to 22 bytes may be sent
- * by the LidarLite controller in one cycle. (12 bytes to pair one sensor, and 5 bytes each if the other
+ * During pairing, up to 15 bytes may be sent in one cycle, to pair a single sensor. Once paired,
+ * a sensor sends at most a 5-byte message in any given cycle. Therefore, up to 25 bytes may be sent
+ * by the LidarLite controller in one cycle. (15 bytes to pair one sensor, and 5 bytes each if the other
  * two perform a read at the same time).
  *
  * The LidarLite sensors support both I2C fast mode (400kHz) and standard mode (100kHz). If possible,

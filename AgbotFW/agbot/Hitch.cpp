@@ -12,7 +12,7 @@
 #include "Hitch.hpp"
 
 uint8_t Hitch::getActualHeight() const {
-	actualHeight = map(analogRead(HEIGHT_SENSOR_PIN), 1023, 204, 0, MAX_HEIGHT);
+	actualHeight = 0;//map(analogRead(HEIGHT_SENSOR_PIN), 1023, 204, 0, MAX_HEIGHT); // height sensor read removed for performance as the input is floating (unused)
 	return actualHeight;
 }
 

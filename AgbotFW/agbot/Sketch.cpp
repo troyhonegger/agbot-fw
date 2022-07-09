@@ -9,6 +9,7 @@
 #include <string.h>
 #include <SparkFun_Ublox_Arduino_Library.h>
 
+Estop estop;
 Config config;
 Hitch hitch;
 Tiller tillers[Tiller::COUNT];
@@ -40,7 +41,7 @@ void setup() {
 	throttle.begin();
 
 	uint8_t mac[6] = { 0xA8, 0x61, 0x0A, 0xAE, 0x11, 0xF6 };
-	uint8_t controllerIP[4] = {172, 21, 2, 1};//REVERT - should be { 192, 168, 4, 2 };
+	uint8_t controllerIP[4] = {172, 21, 2, 1};//TODO - should be { 192, 168, 4, 2 };
 	Ethernet.begin(mac, controllerIP);
 	// adjust these two settings to taste
 	Ethernet.setRetransmissionCount(3);
@@ -50,6 +51,8 @@ void setup() {
 	Wire.begin();
 	Wire.setClock(400000L);
 	heightSensors.begin();
+
+	estop.begin();
 
 	LOG_INFO("Setup complete.");
 }
@@ -149,6 +152,7 @@ void messageProcessor(EthernetApi::Command const& command, char* response) {
 	}
 }*/
 
+//#define TIMING_ANALYSIS
 #ifdef TIMING_ANALYSIS
 static uint32_t starttime;
 static uint32_t lastprint;
@@ -169,7 +173,9 @@ void loop() {
 
 	server.serve();
 	
-	//hitch.getActualHeight();
+	estop.update();
+
+	hitch.getActualHeight();
 	if (hitch.needsUpdate()) { hitch.update(); }
 	for (uint8_t i = 0; i < Tiller::COUNT; i++) { tillers[i].update(); }
 	for (uint8_t i = 0; i < Sprayer::COUNT; i++) { sprayers[i].update(); }

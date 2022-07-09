@@ -32,10 +32,18 @@
 #define ACQ_COMMAND__MEASURE_NO_CORRECTION		0x03
 #define ACQ_COMMAND__MEASURE_WITH_CORRECTION	0x04
 #define I2C_CONFIG__DISABLE_DEFAULT_ADDRESS		0x08
+#define I2C_CONFIG__ENABLE_NONDEFAULT_ADDRESS	0x10
 #define ACQ_CONFIG__VALUES						0x28 /* sensor configuration - each bit has meaning, see datasheet for details. */
 #define OUTER_LOOP_COUNT__CONTINUOUS			0xFF
 
 #define ADJACENT_REGISTER						0x80 /* Per the datasheet, set this bit to read/write two adjacent registers at once*/
+
+//#define LIDAR_LITE_BENCH_TESTS /* Verbose logging of LidarLite state transitions is off by default. Uncomment to enable (for HW debugging only) */
+#ifdef LIDAR_LITE_BENCH_TESTS
+#define LOG_STATE_TRANSITION LOG_VERBOSE
+#else
+#define LOG_STATE_TRANSITION
+#endif
 
 static inline int readRegister(uint8_t i2cAddress, uint8_t regAddress) {
 	uint8_t byteCount =
@@ -109,9 +117,11 @@ void LidarLiteSensor::update(void) {
 				bool success = enterState_Configuring();
 				if (success) {
 					enterState_WaitForRead();
+					LOG_STATE_TRANSITION("LidarLite: Unpaired->Configuring->WaitForRead (success)");
 				}
 				else {
 					enterState_Unpaired();
+					LOG_STATE_TRANSITION("LidarLite: Unpaired->Configuring->Unpaired (failure)");
 				}
 			}
 		break;
@@ -120,9 +130,11 @@ void LidarLiteSensor::update(void) {
 				bool success = enterState_Read();
 				if (success) {
 					enterState_WaitForRead();
+					LOG_STATE_TRANSITION("LidarLite: Read Success %d", height);
 				}
 				else {
 					enterState_Unpaired();
+					LOG_STATE_TRANSITION("LidarLite: Read->Unpaired");
 				}
 			}
 		break;
@@ -201,57 +213,66 @@ void LidarLiteBank::begin(void) {
 #define ADDRESS_CONFLICT_RETRY_DELAY			1000 /* ms */
 
 
-void LidarLiteBank::update(void) {
+void LidarLiteBank::update(void) {	
 	uint8_t newNumPaired = 0;
 	switch (state) {
 		case LIDARBANK_STATE__WAITING:
 			for (int i = 0; i < NUM_SENSORS; i++) {
-				if (!sensors[i].paired) {
+				if (sensors[i].paired) {
 					newNumPaired++;
 				}
 			}
 			numPaired = newNumPaired;
 			if (numPaired != NUM_SENSORS) {
 				enterState_SensorPowerCycle();
+				LOG_STATE_TRANSITION("LidarLiteBank: Waiting->SensorPowerCycle");
 			}
 		break;
 		case LIDARBANK_STATE__SENSOR_POWER_CYCLE:
 			for (int i = 0; i < NUM_SENSORS; i++) {
-				if (!sensors[i].paired) {
+				if (sensors[i].paired) {
 					newNumPaired++;
 				}
 			}
 			if (newNumPaired != numPaired) {
 				numPaired = newNumPaired;
 				enterState_SensorPowerCycle();
+				LOG_STATE_TRANSITION("LidarLiteBank: SensorPowerCycle->SensorPowerCycle");
 			}
 			else if (timer.isUp()) {
 				enterState_ConflictCheck();
+				LOG_STATE_TRANSITION("LidarLiteBank: SensorPowerCycle->ConflictCheck");
 				if (success) {
 					enterState_AddressConflict();
+					LOG_STATE_TRANSITION("LidarLiteBank: ConflictCheck->AddressConflict");
 				}
 				else {
 					enterState_NodeStartup();
+					LOG_STATE_TRANSITION("LidarLiteBank: ConflictCheck->NodeStartup (currentSensor = %d)", currentSensor);
 				}
 			}
 		break;
 		case LIDARBANK_STATE__ADDRESS_CONFLICT:
 			if (timer.isUp()) {
 				enterState_Waiting();
+				LOG_STATE_TRANSITION("LidarLiteBank: AddressConflict->Waiting");
 			}
 		break;
 		case LIDARBANK_STATE__NODE_STARTUP:
 			if (timer.isUp()) {
 				enterState_NodePair();
+				LOG_STATE_TRANSITION("LidarLiteBank: NodeStartup->NodePair");
 			}
 		break;
 		case LIDARBANK_STATE__NODE_PAIR:
 			if (success) {
 				enterState_NodePairDone();
 				enterState_Waiting();
+				LOG_STATE_TRANSITION("LidarLiteBank: NodePair->NodePairDone->Waiting (success)");
 			}
 			else {
 				enterState_Waiting();
+				LOG_STATE_TRANSITION("LidarLiteBank: NodePair->Waiting (failure)");
 			}
 		break;
 		default:
@@ -354,8 +375,11 @@ void LidarLiteBank::enterState_NodePair(void) {
 }
 
 void LidarLiteBank::enterState_NodePairDone(void) {
+	// enable new address using 0x62 address
+	writeRegister(LidarLiteSensor::DEFAULT_ADDRESS, I2C_CONFIG, I2C_CONFIG__ENABLE_NONDEFAULT_ADDRESS);
 	// disable 0x62 address using new address
-	if (writeRegister(LIDAR_I2C_ID(currentSensor), I2C_CONFIG, I2C_CONFIG__DISABLE_DEFAULT_ADDRESS)) {
+	if (writeRegister(LIDAR_I2C_ID(currentSensor), I2C_CONFIG,
+			I2C_CONFIG__ENABLE_NONDEFAULT_ADDRESS | I2C_CONFIG__DISABLE_DEFAULT_ADDRESS)) {
 		// IF ack received, mark sensor as paired
 		sensors[currentSensor].paired = true;
 	}

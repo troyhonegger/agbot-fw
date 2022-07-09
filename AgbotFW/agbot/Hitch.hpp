@@ -1,27 +1,22 @@
 /*
  * Hitch.hpp
  * Encapsulates the data and logic necessary to raise and lower the multivator's three-point hitch in the Hitch class.
- * Unlike the apparently similar Tiller class, Hitch has no distinct states, and no distinction between diag and processing mode.
- * This is because the hitch has no need for scheduling - it can be told to raise NOW, or to lower NOW, or to stop NOW, and it
- * will do so.
  * 
- * The Hitch class also encapsulates the clutch for the roto-tillers. When the hitch is lowered, the clutch will disengage and allow
- * the tillers to rotate. When the hitch is raised, the clutch will automatically disengage, and the tillers will stop. It may be
- * worthwhile to move the clutch to its own separate module, but unfortunately at the time of writing there will be no time for that.
- * As it stands, there is a safety argument to keeping it encapsulated, though it makes the two peripherals more tightly coupled
- * for diagnostics.
+ * The Hitch class also controls the clutch for the roto-tillers. When the hitch is lowered, the clutch will disengage and allow
+ * the tillers to rotate. When the hitch is raised, the clutch will automatically disengage, and the tillers will stop.
  * 
- * The hitch class breaks from C++ RAII pattern, since it needs to be initialized as a global variable, and the initialization
- * logic for a hitch depends on the completion of certain hardware setup that occurs in the Arduino library's main() method.
- * Accordingly, you must call begin() on the hitch (typically in the setup() function) before using it.
+ * May consider moving the clutch to its own API module, and allowing finer-grained control in the API. (may be useful for diagnostics)
  * 
- * As of the initial implementation, it is possible that the tillers will need to be stopped while the hitch is moving,
- * to prevent drawing too much current from the alternator. In case this should be the case, the Hitch class contains
+ * The hitch class breaks from C++ RAII pattern, to allow for its instantiation as a global variable before main() runs.
+ * Accordingly, you must call hitch.begin() before using it.
+ *
+ * hitch.update() must be called every loop iteration. Most operations are scheduled, not immediate,
+ * so failing to call update() will result in the physical I/O points not being activated.
+ * 
+ * At time of writing, there is concern that the tillers may need to be stopped while the hitch is moving,
+ * to limit the current draw on the alternator. In case this should be the case, the Hitch class contains
  * a needsUpdate() method. It may be checked before calling update() so that, if it returns true, the controller can
  * stop the tillers before moving the hitch.
- * 
- * It is critically important to realize that the hitch class only directly controls the physical hitch through the update()
- * function; all other methods simply instruct the update() function how to do its work.
  * 
  * Usage:
  *	Hitch hitch;
@@ -78,16 +73,13 @@ class Hitch {
 		// Creates a new hitch object. Until begin() is called, any other member functions are still undefined.
 		Hitch() : config(nullptr), targetHeight(STOP), actualHeight(MAX_HEIGHT), dh(0) {  }
 
-		// Configures the GPIO and initializes the hitch to begin raising and lowering. This should be
-		// called before any other function on the hitch class.
+		// Configures the GPIO and initializes the hitch. Call this before any other class methods.
 		void begin(Config const*);
 
-		// Returns the target height of the hitch. If the height is Hitch::STOP, the hitch wants to stop regardless
-		// of its position. If the height is between 0 and 100, the hitch wants to move to the target height.
+		// Returns the target height of the hitch (0-100 or a Hitch::STOP)
 		inline uint8_t getTargetHeight() const { return targetHeight; }
-		// Reads and returns the actual, physical height of the hitch off the GPIO pins. There is some performance
-		// overhead associated with this operation (roughly 100us estimated), so calling it thousands of times a
-		// second can slow the system down.
+		// Reads and stores the height from the hitch's height sensor. This is the actual, physical height of the trailer on a scale from 0-100,
+		// and as such it may be different from the target height.
 		uint8_t getActualHeight() const;
 		// Returns the current direction of the tiller (1 means raising, 0 means stopped, -1 means lowering).
 		inline int8_t getDH() const { return dh; }
@@ -96,19 +88,15 @@ class Hitch {
 		inline void setTargetHeight(uint8_t targetHeight) { this->targetHeight = targetHeight; }
 		// Tells the hitch to stop if it hasn't already. Equivalent to setTargetHeight(Hitch::STOP);
 		inline void stop() { setTargetHeight(STOP); }
-		// Tells the hitch to raise to a height given by the configuration.
-		// Equivalent to calling setTargetHeight(config->get(Setting::HitchRaisedHeight)); }
+		// Raises the hitch. Equivalent to calling setTargetHeight(config->get(Setting::HitchRaisedHeight)); }
 		inline void raise() { setTargetHeight(config->get(Setting::HitchRaisedHeight)); }
-		// Tells the hitch to lower to a height given by the configuration.
-		// Equivalent to calling setTargetHeight(config->get(Setting::HitchLoweredHeight)); }
+		// Lowers the hitch. Equivalent to calling setTargetHeight(config->get(Setting::HitchLoweredHeight)); }
 		inline void lower() { setTargetHeight(config->get(Setting::HitchLoweredHeight)); }
 
-		// Calculates if the hitch needs to update - if the difference between the target and actual heights is great enough.
-		// This is included so the controller has time to stop the tillers and sprayers if necessary before raising or lowering
-		// the hitch.
+		// Returns true if update() would perform any I/O. This function is included so the controller has time
+		// to stop the tillers and sprayers if necessary before raising or lowering the hitch.
 		bool needsUpdate() const;
-		// Raises, lowers, or stops the hitch to try and reach the target height. Note that this is the ONLY function that
-		// actually moves the hitch - other functions simply instruct the update() function on what to do
+		// Checks for and performs any scheduled operations. This should be called every iteration of the main controller loop.
 		void update();
 
 		// Writes the information pertaining to the hitch to the given string. Writes at most n characters, and returns the number of

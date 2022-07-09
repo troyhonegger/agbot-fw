@@ -1,7 +1,5 @@
 # HTTP API Spec
 
-TODO - need to flesh this out from old API, fill in blanks, and replace references to old api-spec file with this new HTTP API.  
-
 This API is hosted on the Arduino that powers the multivator.
 All high-level communication with the Arduino
 (with the exception of updating firmware) should take place over this API.
@@ -188,6 +186,11 @@ Response: 200 OK, `application/json`:
   ]
 }
 ```
+
+#### POST `/api/estop`
+Immediately engages the e-stop, shutting off power to all peripherals. TODO add endpoint
+
+Response: 204 (No Content)
 
 #### POST `/api/weeds/{weedStr}`
 `{weedStr}` is a 5-character hex bitfield. It contains the set of weeds found in each of the five rows, from left to right:

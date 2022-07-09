@@ -34,7 +34,7 @@ class Throttle {
 		void begin();
 
 		void up();
-		void down();
+		void down(); //TODO may need to smooth out the signal, either by debouncing the down command or by adding a low-pass filter
 
 		// The ONLY function that should perform I/O.
 		void update();
