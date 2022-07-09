@@ -1,5 +1,5 @@
 /*
- * Estop.hpp
+ * Estop.h
  * Contains the necessary logic for the controller to interface with the machine's hardware e-stop.
  * This module is critical for safety, but it should be handled with care - once the e-stop is triggered,
  * the user must manually disengage it to restore power to the implements.

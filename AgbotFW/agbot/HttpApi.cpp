@@ -5,11 +5,11 @@
  *  Author: troy.honegger
  */ 
 
-#include "Common.hpp"
-#include "Devices.hpp"
-#include "HttpApi.hpp"
-#include "HttpApi_Parsing.hpp"
-#include "Log.hpp"
+#include "Common.h"
+#include "Devices.h"
+#include "HttpApi.h"
+#include "HttpApi_Parsing.h"
+#include "Log.h"
 
 #define PSTR_AND_LENGTH(s) PSTR(s), sizeof(s) - 1
 

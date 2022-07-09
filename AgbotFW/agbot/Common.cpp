@@ -5,8 +5,8 @@
  *  Author: troy.honegger
  */ 
 
-#include "Common.hpp"
-#include "Log.hpp"
+#include "Common.h"
+#include "Log.h"
 
 void assertImpl(bool condition, const char* conditionStr, const char* file, int line) {
 	if (!condition) {

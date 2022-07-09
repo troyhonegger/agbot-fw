@@ -1,5 +1,5 @@
 /*
- * Sprayer.hpp
+ * Sprayer.h
  * Encapsulates the data and logic necessary to interact with a sprayer on the multivator in the Sprayer class.
  * Handles scheduling of on/off commands sent to a single sprayer.
  * 
@@ -11,7 +11,7 @@
  * 
  * Usage example:
  *	Sprayer sprayer;
- *	sprayer.begin(0, &config); // requires pre-initialized configuration - see Config.hpp
+ *	sprayer.begin(0, &config); // requires pre-initialized configuration - see Config.h
  *	sprayer.killWeed();
  *	sprayer.update(); // call this repeatedly so sprayer can turn on when ready
  * 
@@ -23,8 +23,8 @@
 #pragma once
 
 #include <Arduino.h>
-#include "Common.hpp"
-#include "Config.hpp"
+#include "Common.h"
+#include "Config.h"
 
 
 class Sprayer {

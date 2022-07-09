@@ -1,16 +1,16 @@
 /*
  * Tiller.cpp
- * Implements the Tiller class defined in Tiller.hpp for interacting with the tillers on the machine.
- * See Tiller.hpp for more info.
+ * Implements the Tiller class defined in Tiller.h for interacting with the tillers on the machine.
+ * See Tiller.h for more info.
  * Created: 11/21/2018 8:13:00 PM
  *  Author: troy.honegger
  */
 
 #include <Arduino.h>
 
-#include "Common.hpp"
-#include "Config.hpp"
-#include "Tiller.hpp"
+#include "Common.h"
+#include "Config.h"
+#include "Tiller.h"
 
 #include <string.h>
 

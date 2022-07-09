@@ -1,5 +1,5 @@
 /*
- * LidarLiteV3.hpp
+ * LidarLiteV3.h
  *
  * For state machine documentation see LidarLiteV3_State_Machine.drawio
  *
@@ -44,7 +44,7 @@
 
 #pragma once
 
-#include "Common.hpp"
+#include "Common.h"
 
 class LidarLiteSensor {
 	public:

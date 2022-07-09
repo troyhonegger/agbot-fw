@@ -1,5 +1,5 @@
 /*
- * Config.hpp
+ * Config.h
  * Encapsulates the data and logic necessary to store persistent configuration settings in the Config class.
  * This class allows you to store and retrieve configuration values from the EEPROM memory.
  * 

@@ -6,8 +6,8 @@
  */ 
 
 #include <Arduino.h>
-#include "Common.hpp"
-#include "Throttle.hpp"
+#include "Common.h"
+#include "Throttle.h"
 
 void Throttle::begin() {
 	pinMode(XTD_PIN, OUTPUT);

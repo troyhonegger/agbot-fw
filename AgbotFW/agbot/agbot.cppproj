@@ -252,34 +252,34 @@
     <Compile Include="Common.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="Common.hpp">
+    <Compile Include="Common.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="Config.hpp">
+    <Compile Include="Config.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="Estop.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="Estop.hpp">
+    <Compile Include="Estop.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="Devices.hpp">
+    <Compile Include="Devices.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="HttpApi_Parsing.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="HttpApi_Parsing.hpp">
+    <Compile Include="HttpApi_Parsing.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="LidarLiteV3.hpp">
+    <Compile Include="LidarLiteV3.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="Hitch.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="Hitch.hpp">
+    <Compile Include="Hitch.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="Config.cpp">
@@ -288,13 +288,13 @@
     <Compile Include="Http.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="Http.hpp">
+    <Compile Include="Http.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="HttpApi.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="HttpApi.hpp">
+    <Compile Include="HttpApi.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="jsmn.c">
@@ -309,7 +309,7 @@
     <Compile Include="Log.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="Log.hpp">
+    <Compile Include="Log.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="Sketch.cpp">
@@ -318,19 +318,19 @@
     <Compile Include="Sprayer.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="Sprayer.hpp">
+    <Compile Include="Sprayer.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="Throttle.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="Throttle.hpp">
+    <Compile Include="Throttle.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="Tiller.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="Tiller.hpp">
+    <Compile Include="Tiller.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="BenchTests.cpp">

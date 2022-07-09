@@ -1,5 +1,5 @@
 /*
- * Hitch.hpp
+ * Hitch.h
  * Encapsulates the data and logic necessary to raise and lower the multivator's three-point hitch in the Hitch class.
  * 
  * The Hitch class also controls the clutch for the roto-tillers. When the hitch is lowered, the clutch will disengage and allow
@@ -40,7 +40,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include "Config.hpp"
+#include "Config.h"
 
 class Hitch {
 	public:

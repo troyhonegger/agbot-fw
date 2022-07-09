@@ -1,5 +1,5 @@
 /*
- * Devices.hpp
+ * Devices.h
  * Declares objects for controlling high-level device functionality.
  * Created: 2/25/2020 2:52:06 PM
  *  Author: troy.honegger
@@ -8,14 +8,14 @@
 
 #pragma once
 
-#include "Common.hpp"
-#include "Config.hpp"
-#include "Hitch.hpp"
-#include "Tiller.hpp"
-#include "Sprayer.hpp"
-#include "Throttle.hpp"
-#include "LidarLiteV3.hpp"
-#include "Estop.hpp"
+#include "Common.h"
+#include "Config.h"
+#include "Hitch.h"
+#include "Tiller.h"
+#include "Sprayer.h"
+#include "Throttle.h"
+#include "LidarLiteV3.h"
+#include "Estop.h"
 
 extern Estop estop;
 extern Config config;

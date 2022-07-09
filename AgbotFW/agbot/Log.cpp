@@ -5,9 +5,9 @@
  *  Author: troy.honegger
  */ 
 
-#include "Log.hpp"
+#include "Log.h"
 
-#include "Common.hpp"
+#include "Common.h"
 
 static const char VERBOSE_PREFIX_FORMAT[] PROGMEM =	"%09ld VERBOSE ";
 static const char DEBUG_PREFIX_FORMAT[] PROGMEM =	"%09ld DEBUG   ";

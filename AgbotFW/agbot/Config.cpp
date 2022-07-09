@@ -1,7 +1,7 @@
 /*
  * Config.cpp
- * Implements the Config class declared in Config.hpp for storing persistent configuration settings.
- * See Config.hpp for more info.
+ * Implements the Config class declared in Config.h for storing persistent configuration settings.
+ * See Config.h for more info.
  * Created: 11/21/2018 8:24:59 PM
  *  Author: troy.honegger
  */
@@ -9,7 +9,7 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 
-#include "Config.hpp"
+#include "Config.h"
 
 #define MAKE_SETTING_STRING(setting)	static_assert((uint8_t) Setting::setting >= 0, ""); \
 										static const char setting##_STR [] PROGMEM = #setting
@@ -48,7 +48,7 @@ static struct {
 };
 
 static_assert(Config::NUM_SETTINGS == sizeof(settingData) / sizeof(settingData[0]),
-		"settingData must align with Setting enum definitions in Config.hpp");
+		"settingData must align with Setting enum definitions in Config.h");
 
 void Config::begin() {
 	for (uint8_t i = 0; i < NUM_SETTINGS; i++) {

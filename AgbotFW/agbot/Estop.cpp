@@ -1,13 +1,13 @@
 /*
  * Estop.cpp
- * Implements the Estop class defined in Estop.hpp for triggering the machine's e-stop.
- * See Estop.hpp for more info.
+ * Implements the Estop class defined in Estop.h for triggering the machine's e-stop.
+ * See Estop.h for more info.
  * Created: 3/6/2019 3:14:52 PM
  *  Author: troy.honegger
  */
 
-#include "Common.hpp"
-#include "Estop.hpp"
+#include "Common.h"
+#include "Estop.h"
 
 Estop::Estop() : whenEngaged(0), engaged(false) { }
 

@@ -1,10 +1,10 @@
 ﻿#include <Arduino.h>
 
-#include "Common.hpp"
-#include "Devices.hpp"
-#include "Http.hpp"
-#include "HttpApi.hpp"
-#include "Log.hpp"
+#include "Common.h"
+#include "Devices.h"
+#include "Http.h"
+#include "HttpApi.h"
+#include "Log.h"
 
 #include <string.h>
 #include <SparkFun_Ublox_Arduino_Library.h>

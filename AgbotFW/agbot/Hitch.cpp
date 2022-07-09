@@ -1,15 +1,15 @@
 /*
  * Hitch.cpp
- * Implements the Hitch class defined in Hitch.hpp for interacting with the hitch on the machine.
- * See Hitch.hpp for more info.
+ * Implements the Hitch class defined in Hitch.h for interacting with the hitch on the machine.
+ * See Hitch.h for more info.
  * Created: 3/9/2019 2:45:06 PM
  *  Author: troy.honegger
  */ 
 
 #include <Arduino.h>
-#include "Common.hpp"
-#include "Config.hpp"
-#include "Hitch.hpp"
+#include "Common.h"
+#include "Config.h"
+#include "Hitch.h"
 
 uint8_t Hitch::getActualHeight() const {
 	actualHeight = 0;//map(analogRead(HEIGHT_SENSOR_PIN), 1023, 204, 0, MAX_HEIGHT); // height sensor read removed for performance as the input is floating (unused)

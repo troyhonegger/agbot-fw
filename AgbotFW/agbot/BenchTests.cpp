@@ -14,8 +14,8 @@
  *  Author: troy.honegger
  */ 
 
-#include "Common.hpp"
-#include "Log.hpp"
+#include "Common.h"
+#include "Log.h"
 
 #ifdef BENCH_TESTS
 

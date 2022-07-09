@@ -1,7 +1,7 @@
-﻿#include "Http.hpp"
+﻿#include "Http.h"
 
-#include "Common.hpp"
-#include "Log.hpp"
+#include "Common.h"
+#include "Log.h"
 
 typedef long ssize_t; // for some reason Arduino doesn't have this defined by default?
 

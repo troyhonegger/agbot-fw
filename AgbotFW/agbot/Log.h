@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Common.hpp"
+#include "Common.h"
 
 #define LOG_LEVEL_VERBOSE		1
 #define LOG_LEVEL_DEBUG			2

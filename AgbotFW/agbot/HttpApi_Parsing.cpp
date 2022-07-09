@@ -5,7 +5,7 @@
  *  Author: troy.honegger
  */ 
 
-#include "HttpApi_Parsing.hpp"
+#include "HttpApi_Parsing.h"
 
 #define JSMN_HEADER
 #define JSMN_PARENT_LINKS
@@ -15,8 +15,8 @@
 static jsmn_parser jsonParser;
 static jsmntok_t jsonBuffer[NUM_JSON_TOKENS];
 
-#include "Tiller.hpp"
-#include "Hitch.hpp"
+#include "Tiller.h"
+#include "Hitch.h"
 
 // TODO watch out - this leads to a separate PSTR allocation for each call. May be wasteful if you compare against the same string in multiple places.
 #define TOKEN_IS(json, tok, s) ((tok).type == JSMN_STRING && (tok).end - (tok).start == sizeof(s) - 1 && !strncmp_P((json) + (tok).start, PSTR(s), sizeof(s) - 1))

@@ -1,5 +1,5 @@
 /*
- * Tiller.hpp
+ * Tiller.h
  * Encapsulates the data and logic necessary to interact with a tiller on the multivator in the Tiller class.
  * Handles scheduling of commands (raise, lower, stop, etc) sent to a single tiller.
  * 
@@ -11,7 +11,7 @@
  * 
  * Usage example:
  *	Tiller tiller;
- *	tiller.begin(0, &config); // requires pre-initialized configuration - see Config.hpp
+ *	tiller.begin(0, &config); // requires pre-initialized configuration - see Config.h
  *	tiller.killWeed();
  *	tiller.update(); // call this repeatedly so tiller can raise when ready
  * 
@@ -21,8 +21,8 @@
 
 #pragma once
 
-#include "Common.hpp"
-#include "Config.hpp"
+#include "Common.h"
+#include "Config.h"
 
 // Commands that can be given to the tiller in setHeight() in place of a height 0-100.
 enum TillerCommand : uint8_t {

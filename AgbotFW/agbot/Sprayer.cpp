@@ -1,14 +1,14 @@
 /*
  * Sprayer.cpp
- * Implements the Sprayer class defined in Sprayer.hpp for interacting with the sprayers on the machine.
- * See Sprayer.hpp for more info.
+ * Implements the Sprayer class defined in Sprayer.h for interacting with the sprayers on the machine.
+ * See Sprayer.h for more info.
  * Created: 11/21/2018 8:00:00 PM
  *  Author: troy.honegger
  */
 
-#include "Common.hpp"
-#include "Config.hpp"
-#include "Sprayer.hpp"
+#include "Common.h"
+#include "Config.h"
+#include "Sprayer.h"
 
 #define SET_BIT(x, i)		((x) |=  (1<<(i)))
 #define UNSET_BIT(x, i)		((x) &= ~(1<<(i)))

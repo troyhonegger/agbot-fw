@@ -5,12 +5,12 @@
  *  Author: troy.honegger
  */ 
 
-#include "Common.hpp"
-#include "Log.hpp"
+#include "Common.h"
+#include "Log.h"
 
 #include <Wire.h>
 
-#include "LidarLiteV3.hpp"
+#include "LidarLiteV3.h"
 
 #define LIDAR_I2C_ID(id)			(LidarLiteSensor::START_ADDRESS + ((id) << 1))
 
