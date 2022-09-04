@@ -16,7 +16,7 @@ This API does not specify how other components of the system
 ## Endpoints
 
 #### GET `/`
-Returns `text/html` webpage
+Returns `text/html` webpage. TODO - unfortunately not implemented yet
 
 
 #### GET `/version`
